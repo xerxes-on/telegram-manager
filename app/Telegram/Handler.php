@@ -13,8 +13,6 @@ use App\Telegram\Traits\HasPlans;
 use DefStudio\Telegraph\Enums\ChatActions;
 use DefStudio\Telegraph\Facades\Telegraph;
 use DefStudio\Telegraph\Handlers\WebhookHandler;
-use DefStudio\Telegraph\Keyboard\Button;
-use DefStudio\Telegraph\Keyboard\Keyboard;
 use DefStudio\Telegraph\Keyboard\ReplyKeyboard;
 use Illuminate\Support\Stringable;
 
@@ -135,7 +133,7 @@ class Handler extends WebhookHandler
             ->first();
 
         if (empty($existingOrder)) {
-            $existingOrder =Order::create([
+            $existingOrder = Order::create([
                 'price' => $planModel->price,
                 'plan_id' => $planModel->id,
                 'status' => 'created',
@@ -144,7 +142,10 @@ class Handler extends WebhookHandler
         }
         Telegraph::chat($this->chat_id())
             ->message('To\'lov sahifasi
-                 '.route('process.payment').'/'.$this->chat_id().'/'.$existingOrder->id)
+                 '.route('process.payment', [
+                    'chatId' => $this->chat_id(),
+                    'orderId' => $existingOrder->id
+                ]))
             ->send();
 //        $this->processPaymentOneTime($planModel, $user);
 //        $this->sendChannelLink();
