@@ -1,7 +1,7 @@
 <?php
 
+use App\Http\Controllers\PayzeCallbackController;
 use Illuminate\Support\Facades\Route;
-use Illuminate\Support\Facades\URL;
 use PayzeIO\LaravelPayze\Facades\Payze;
 
 //Route::get('/', function () {
@@ -9,18 +9,22 @@ use PayzeIO\LaravelPayze\Facades\Payze;
 //});
 
 
-use App\Http\Controllers\PayzeCallbackController;
+//Route::post('/payment/payze/callback', [PayzeCallbackController::class, 'handleCallback'])
+//    ->name('payze.callback');
+//
+//Payze::routes();
 
-Route::post('/payment/payze/callback', [PayzeCallbackController::class, 'handleCallback'])
-    ->name('payze.callback');
+require __DIR__.'/pay.php';
 
-Payze::routes();
+
+
+
+
 //Route::get('/shared/posts/{post}', function (\Illuminate\Http\Request $request, Post $post){
 //
 //    return "Specially made just for you 💕 ;) Post id: {$post->id}";
 //
 //})->name('shared.post')->middleware('signed');
-
 
 
 //if(\Illuminate\Support\Facades\App::environment('local')){

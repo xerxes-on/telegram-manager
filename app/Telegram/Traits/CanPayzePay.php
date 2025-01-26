@@ -2,15 +2,15 @@
 
 namespace App\Telegram\Traits;
 
+use App\Models\Plan;
 use App\Models\User;
 use App\Telegram\Services\PayzePaymentService;
 use DefStudio\Telegraph\Facades\Telegraph;
 
 trait CanPayzePay
 {
-    public function processPaymentOneTime($amount, $chatId): void
+    public function processPaymentOneTime(Plan $plan, User $user): void
     {
-        $user = User::where('chat_id', $chatId)->first();
         if (!$user) {
             Telegraph::chat($chatId)->message("User not found!")->send();
             return;

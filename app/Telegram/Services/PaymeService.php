@@ -5,8 +5,9 @@ namespace App\Telegram\Services;
 use App\Models\Order;
 use App\Models\Subscription;
 use App\Models\Transaction;
-use App\Models\User;
 use Carbon\Carbon;
+use DefStudio\Telegraph\Facades\Telegraph;
+
 
 class PaymeService
 {
@@ -161,24 +162,40 @@ class PaymeService
             $order->status = 'charged';
             $order->update();
 
-            $user = User::where('phone_number', $order->client->phone_number)->first();
+            $user = $order->user;
             if (!empty($user)) {
-                $planTitle = $order->plan->title;
-                if (preg_match('/(\d+)-week/', $planTitle, $matches)) {
-                    $weeks = (int) $matches[1];
-                    $expires = Carbon::now()->addWeeks($weeks);
-                } else {
-                    $expires = Carbon::now()->addWeeks();
-                }
+                $planTitle = $order->plan->name;
+                $expires = match (true) {
+                    str_contains($planTitle, 'one-month') => Carbon::now()->addMonth(),
+                    str_contains($planTitle, 'two-months') => Carbon::now()->addMonths(2),
+                    str_contains($planTitle, 'six-months') => Carbon::now()->addMonths(6),
+                    str_contains($planTitle, 'one-year') => Carbon::now()->addYear(),
+                    default => Carbon::now()->addWeek()
+                };
                 Subscription::create([
                     'user_id' => $user->id,
-                    'transaction_id' => $order->id,
+                    'order_id' => $order->id,
                     'amount' => $order->price,
                     'expires_at' => $expires,
                     'status' => 'active',
-                    'payment_method' => 'payme',
-                    'metadata' => json_encode($transaction)
                 ]);
+
+                Telegraph::chat($user->chat_id)
+                    ->message('🎉Subscription created!
+                    Expires: '.$expires.'
+                     Thanks 😇')->send();
+
+                Telegraph::chat($user->chat_id)
+                    ->message('Channel link, please join and wait admin to verify 🙂'.
+                    env('TELEGRAM_CHANNEL_LINK'))->send();
+
+                Telegraph::chat(env('ADMIN_CHAT_ID'))
+                    ->message('User subscription created 🎉
+                    Please approve their join request ASAP.
+                    Name: '.$user->name.'
+                    Phone: '.$user->phone_number.'
+                    Plan: '.$order->plan->name)
+                    ->send();
             }
             return [
                 'result' => [
@@ -275,7 +292,6 @@ class PaymeService
      */
     public function getStatement(array $params): array
     {
-        // Assuming you have a scope or function for time range filtering
         $from = $params['from'] ?? null;
         $to = $params['to'] ?? null;
         $transactions = Transaction::getTransactionsByTimeRange($from, $to);
