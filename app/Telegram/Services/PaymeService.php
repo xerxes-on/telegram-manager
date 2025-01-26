@@ -2,15 +2,17 @@
 
 namespace App\Telegram\Services;
 
+use AllowDynamicProperties;
 use App\Models\Order;
 use App\Models\Subscription;
 use App\Models\Transaction;
 use App\Models\User;
 use Carbon\Carbon;
 use DefStudio\Telegraph\Facades\Telegraph;
+use DefStudio\Telegraph\Handlers\WebhookHandler;
 
 
-class PaymeService
+#[AllowDynamicProperties] class PaymeService extends WebhookHandler
 {
 
     public function checkPerformTransaction(array $params): array
@@ -165,6 +167,8 @@ class PaymeService
 
             $user = User::find($order->user_id);
             if (!empty($user)) {
+                $this->chat_id = $user->chat_id;
+                $this->admin_chat_id = env("ADMIN_CHAT_ID");
                 $planTitle = $order->plan->name;
                 $expires = match (true) {
                     str_contains($planTitle, 'one-month') => Carbon::now()->addMonth(),
@@ -181,16 +185,16 @@ class PaymeService
                     'status' => 1,
                 ]);
 
-                Telegraph::chat($user->chat_id)
+                Telegraph::chat($this->chat_id)
                     ->message('🎉Subscription created!
                     Expires: '.$expires.'
                      Thanks 😇')->send();
 
-                Telegraph::chat($user->chat_id)
+                Telegraph::chat($this->chat_id)
                     ->message('Channel link, please join and wait admin to verify 🙂'.
                     env('TELEGRAM_CHANNEL_LINK'))->send();
 
-                Telegraph::chat(env('ADMIN_CHAT_ID'))
+                Telegraph::chat($this->admin_chat_id)
                     ->message('User subscription created 🎉
                     Please approve their join request ASAP.
                     Name: '.$user->name.'
