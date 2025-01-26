@@ -5,6 +5,7 @@ namespace App\Telegram\Services;
 use App\Models\Order;
 use App\Models\Subscription;
 use App\Models\Transaction;
+use App\Models\User;
 use Carbon\Carbon;
 use DefStudio\Telegraph\Facades\Telegraph;
 
@@ -162,7 +163,7 @@ class PaymeService
             $order->status = 'charged';
             $order->update();
 
-            $user = $order->user;
+            $user = User::find($order->user_id);
             if (!empty($user)) {
                 $planTitle = $order->plan->name;
                 $expires = match (true) {
@@ -177,7 +178,7 @@ class PaymeService
                     'order_id' => $order->id,
                     'amount' => $order->price,
                     'expires_at' => $expires,
-                    'status' => 'active',
+                    'status' => 1,
                 ]);
 
                 Telegraph::chat($user->chat_id)
