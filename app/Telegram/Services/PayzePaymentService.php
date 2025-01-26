@@ -2,10 +2,15 @@
 
 namespace App\Telegram\Services;
 
+use App\Models\Order;
+use App\Models\Plan;
+use App\Models\Subscription;
 use App\Models\User;
 use App\Models\UserPaymentMethod;
 use Carbon\Carbon;
+use DefStudio\Telegraph\Facades\Telegraph;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 use PayzeIO\LaravelPayze\Facades\Payze;
 
 class PayzePaymentService
@@ -14,7 +19,7 @@ class PayzePaymentService
      * Create a one-time payment order and return the Payze payment URL.
      * The user can be redirected OR you can send this link via Telegram.
      */
-    public function createOneTimePayment(User $user, float $amount, string $currency = 'USD'): string
+    public function createOneTimePayment(User $user, Plan $plan, string $currency = 'USD'): string
     {
         // Example description for the Payze checkout page
         $description = "Payment for subscription (User: {$user->phone_number})";
@@ -23,13 +28,8 @@ class PayzePaymentService
         $callbackUrl = route('payze.callback');
 
         // Create the order
-        $orderResponse = Payze::createOrder(
-            amount: $amount,
-            currency: $currency,
-            callbackUrl: $callbackUrl,
-            preauthorize: false, // false = immediate payment (not tokenizing the card here)
-            description: $description,
-        );
+        $orderResponse = Order::create([
+        ]);
 
         // Store the order ID in your DB if needed
         // $orderResponse->order_id
@@ -111,36 +111,34 @@ class PayzePaymentService
      */
     public function handlePayzeCallback(array $payload): void
     {
-        // Inspect $payload
-        // Example: $payload['status'], $payload['order_id'], $payload['cardToken']
-        $status     = $payload['status'] ?? null;
-        $orderId    = $payload['order_id'] ?? null;
-        $cardToken  = $payload['cardToken'] ?? null;
-        $cardLast4  = $payload['cardMasked'] ?? null;  // often masked like ****1111
-
-        // If we were "preauthorizing", we might finalize or store the card token
-        if ($status === 'Preauthorized' && $cardToken) {
-            // Find the user/order from DB by $orderId
-            // ...
-            /** @var User $user **/
-            $user = /* find user somehow */ null;
+        if ($payload['status'] === 'Charged') {
+            $user = User::where('payze_customer_id', $payload['customer_id'])->first();
 
             if ($user) {
-                // Save or update the user’s payment method with the token
-                $paymentMethod = $user->paymentMethods()->firstOrCreate([
-                    'user_id' => $user->id,
-                ]);
+                $this->handleSuccessfulOneTimePayment($user, $payload['amount'], $payload['currency']);
+            } else {
+                Log::log('user not found');
 
-                $paymentMethod->card_token  = $cardToken;
-                $paymentMethod->card_last4  = $cardLast4;
-                $paymentMethod->save();
-
-                // (Optional) You may want to "capture" the preauthorized amount if needed
-                // Payze::capturePreauthorization($orderId);
             }
+        } else {
+            Log::log('Not successful payment');
         }
-
-        // If $status === 'Charged', then it was a successful immediate payment
-        // If $status === 'Cancelled', handle it, etc.
     }
+    public function handleSuccessfulOneTimePayment(User $user, float $amount, string $currency = 'UZS'): void
+    {
+        $expiresAt = Carbon::now()->addMonths(1); // Example: 1 month subscription
+
+        Subscription::create([
+            'user_id' => $user->id,
+            'expires_at' => $expiresAt,
+            'status' => 'active' ,
+            'order_id'=>1
+        ]);
+
+        $channelLink = env('TELEGRAM_CHANNEL_LINK');
+        Telegraph::chat($user->chat_id)
+            ->message("Thank you for subscribing! Here's the link to our channel: $channelLink")
+            ->send();
+    }
+
 }

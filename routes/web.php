@@ -9,6 +9,10 @@ use PayzeIO\LaravelPayze\Facades\Payze;
 //});
 
 
+use App\Http\Controllers\PayzeCallbackController;
+
+Route::post('/payment/payze/callback', [PayzeCallbackController::class, 'handleCallback'])
+    ->name('payze.callback');
 
 Payze::routes();
 //Route::get('/shared/posts/{post}', function (\Illuminate\Http\Request $request, Post $post){

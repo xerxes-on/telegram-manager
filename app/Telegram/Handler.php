@@ -2,23 +2,23 @@
 
 namespace App\Telegram;
 
-use App\Models\Card;
 use App\Models\Order;
 use App\Models\Plan;
 use App\Models\User;
+use App\Telegram\Services\PayzePaymentService;
 use App\Telegram\Traits\CanAlterUsers;
+use App\Telegram\Traits\CanPayzePay;
 use App\Telegram\Traits\HandlesButtonActions;
 use App\Telegram\Traits\HasPlans;
 use DefStudio\Telegraph\Enums\ChatActions;
 use DefStudio\Telegraph\Facades\Telegraph;
 use DefStudio\Telegraph\Handlers\WebhookHandler;
 use DefStudio\Telegraph\Keyboard\ReplyKeyboard;
-use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Stringable;
 
 class Handler extends WebhookHandler
 {
-    use CanAlterUsers, HasPlans, HandlesButtonActions;
+    use CanAlterUsers, HasPlans, HandlesButtonActions, CanPayzePay;
 
     public function chat_id(): int
     {
@@ -67,7 +67,7 @@ class Handler extends WebhookHandler
 
         switch ($message) {
             case '💳 Тўлов':
-                $this->processPaymentButton();
+                $this->sendPlans();
                 return;
 
             case '📋 Обуна ҳолати':
@@ -140,8 +140,8 @@ class Handler extends WebhookHandler
                 'user_id' => $user->id
             ]);
         }
-        $this->simulatePayment();
-        $this->sendChannelLink();
+        $this->processPaymentOneTime($planModel->price, $this->chat_id());
+//        $this->sendChannelLink();
     }
 
     private function sendChannelLink(): void
@@ -160,7 +160,7 @@ class Handler extends WebhookHandler
     private function processPhoneNumber(int $chatId, string $message): void
     {
         $contact = $this->request['message']['contact'] ?? null;
-        $name =$this->request['message']['from']['first_name'] ?? "Anonymous";
+        $name = $this->request['message']['from']['first_name'] ?? "Anonymous";
         if ($contact) {
             $phoneNumber = $contact['phone_number'] ?? null;
             if ($phoneNumber && preg_match('/^\+?[0-9]{10,15}$/', $phoneNumber)) {
@@ -226,23 +226,12 @@ class Handler extends WebhookHandler
         $this->sendPlans();
     }
 
-    private function simulatePayment(): void
+    public function handleSuccessfulPayment(User $user, float $amount, string $currency): void
     {
-        Telegraph::chat($this->chat_id())
-            ->message("Pul yechish uchun so'rov...")
-            ->replyKeyboard(ReplyKeyboard::make()
-                ->button('💳 Тўлов')
-                ->button('📋 Обуна ҳолати')
-                ->button('🆘 Қўллаб-қувватлаш')
-                ->chunk(3)->resize())
-            ->send();
-
-        sleep(4);
-
-        Telegraph::chat($this->chat_id())
-            ->message("Pul samarali yechildi!")
-            ->send();
+        $payzeService = app(PayzePaymentService::class);
+        $payzeService->handleSuccessfulOneTimePayment($user, $amount, $currency);
     }
+
 
     public function pay(): void
     {
