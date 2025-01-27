@@ -23,11 +23,11 @@ trait HasPlans
             ->message('Obuna muddatini tanlang')
             ->keyboard(
                 Keyboard::make()->buttons([
-                    Button::make('1-hafta bepul')->action('savePlan')->param('plan', 'one-week-free'),
-                    Button::make('1 oy')->action('savePlan')->param('plan', 'one-month'),
-                    Button::make('2 oy')->action('savePlan')->param('plan', 'two-months'),
-                    Button::make('6 oy')->action('savePlan')->param('plan', 'six-months'),
-                    Button::make('1 yil')->action('savePlan')->param('plan', 'one-year'),
+                    Button::make('1-hafta bepul')->action('savePlan')->param('plan', 'one-week-free')->width(0.3),
+                    Button::make('1 oy')->action('savePlan')->param('plan', 'one-month')->width(0.3),
+                    Button::make('2 oy')->action('savePlan')->param('plan', 'two-months')->width(0.3),
+                    Button::make('6 oy')->action('savePlan')->param('plan', 'six-months')->width(0.5),
+                    Button::make('1 yil')->action('savePlan')->param('plan', 'one-year')->width(0.5),
                 ])
             )->send();
     }
