@@ -168,7 +168,7 @@ use DefStudio\Telegraph\Handlers\WebhookHandler;
             $user = User::find($order->user_id);
             if (!empty($user)) {
                 $this->chat_id = $user->chat_id;
-                $this->admin_chat_id =intval(env("ADMIN_CHAT_ID"));
+                $this->admin_chat_id = intval(env("ADMIN_CHAT_ID"));
                 $planTitle = $order->plan->name;
                 $expires = match (true) {
                     str_contains($planTitle, 'one-month') => Carbon::now()->addMonth(),
@@ -184,12 +184,15 @@ use DefStudio\Telegraph\Handlers\WebhookHandler;
                     'expires_at' => $expires,
                     'status' => 1,
                 ]);
+                $sticker = "CAACAgIAAxkBAAExKjRnl0Nr7-7-U-Ita4YDc764z65TRwACiQADFkJrCkbL2losgrCONgQ";
+                Telegraph::chat($this->chat_id)
+                    ->sticker($sticker)->send();
 
                 Telegraph::chat($this->chat_id)
                     ->message("🎉 Obuna yaratildi! \nMuddati: ".$expires."\n Foydali qadam 😇")->send();
 
                 Telegraph::chat($this->chat_id)
-                    ->message("Kanalga qo'shiling va admin tasdiqlashini kuting 🙂\n ". env('TELEGRAM_CHANNEL_LINK'))
+                    ->message("Kanalga qo'shiling va admin tasdiqlashini kuting 🙂\n ".env('TELEGRAM_CHANNEL_LINK'))
                     ->send();
 
                 Telegraph::chat($this->admin_chat_id)

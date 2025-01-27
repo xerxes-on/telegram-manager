@@ -20,7 +20,7 @@ trait HasPlans
     {
         // Create inline buttons with plan parameters
         Telegraph::chat($this->chat_id())
-            ->message('Obuna muddatini tanlang')
+            ->message('Obuna muddatini tanlang 👇')
             ->keyboard(
                 Keyboard::make()->buttons([
                     Button::make('1-hafta bepul')->action('savePlan')->param('plan', 'one-week-free')->width(0.3),
