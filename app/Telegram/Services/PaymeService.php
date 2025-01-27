@@ -189,7 +189,7 @@ use DefStudio\Telegraph\Handlers\WebhookHandler;
                     ->message("🎉Subscription created! \nExpires: ".$expires."\n Enjoy 😇")->send();
 
                 Telegraph::chat($this->chat_id)
-                    ->message("Channel link, please join and wait admin to verify 🙂\n ". config('telegram_channel_link'))
+                    ->message("Channel link, please join and wait admin to verify 🙂\n ". env('TELEGRAM_CHANNEL_LINK'))
                     ->send();
 
                 Telegraph::chat($this->admin_chat_id)

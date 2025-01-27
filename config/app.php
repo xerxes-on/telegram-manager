@@ -123,6 +123,4 @@ return [
         'store' => env('APP_MAINTENANCE_STORE', 'database'),
     ],
 
-    'telegram_channel_link'=>env('TELEGRAM_CHANNEL_LINK', "https://t.me/+vcExAIYvlqA2Mjgy")
-
 ];
