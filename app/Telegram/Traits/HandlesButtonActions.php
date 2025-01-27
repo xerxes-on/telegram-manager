@@ -22,10 +22,13 @@ trait HandlesButtonActions
      */
     public  function processSubscriptionStatusButton(): void
     {
-        Telegraph::chat($this->chat_id())->chatAction(ChatActions::CHOOSE_STICKER)->send();
+        Telegraph::chat($this->chat_id())
+            ->chatAction(ChatActions::CHOOSE_STICKER)
+            ->send();
 
         $sub = Subscription::where('status', 1)
-            ->where('user_id', User::where('chat_id', $this->chat_id())->first())
+            ->where('user_id', User::where('chat_id', $this->chat_id())
+                ->first()->id)
             ->first();
         if(empty($sub)){
             Telegraph::chat($this->chat_id())
