@@ -94,7 +94,7 @@ class Handler extends WebhookHandler
                 ReplyButton::make("📋 Obuna holati"),
             ])->chunk(2)
             ->row([
-                ReplyButton::make('🆘 Yordam')->requestQuiz(),
+                ReplyButton::make('🆘 Yordam'),
             ])->chunk(1)
             ->resize();
         Telegraph::chat($chatId)
@@ -111,7 +111,7 @@ class Handler extends WebhookHandler
                 ReplyButton::make("📋 Obuna holati"),
             ])->chunk(2)
             ->row([
-                ReplyButton::make('🆘 Yordam')->requestQuiz(),
+                ReplyButton::make('🆘 Yordam'),
             ])->chunk(1)
             ->resize();
         Telegraph::chat($this->chat_id())
