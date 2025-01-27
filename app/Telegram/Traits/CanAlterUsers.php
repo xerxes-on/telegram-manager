@@ -89,8 +89,6 @@ trait CanAlterUsers
      */
     public function sendUserData(int $chatId): void
     {
-        // Example: Retrieve user from DB and send some info.
-        // Extend as needed.
         $user = User::where('chat_id', $chatId)->first();
         if ($user) {
             // You can modify this message to include any relevant user data

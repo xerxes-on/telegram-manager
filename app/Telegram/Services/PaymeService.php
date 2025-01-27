@@ -168,7 +168,7 @@ use DefStudio\Telegraph\Handlers\WebhookHandler;
             $user = User::find($order->user_id);
             if (!empty($user)) {
                 $this->chat_id = $user->chat_id;
-                $this->admin_chat_id = env("ADMIN_CHAT_ID");
+                $this->admin_chat_id =intval(env("ADMIN_CHAT_ID"));
                 $planTitle = $order->plan->name;
                 $expires = match (true) {
                     str_contains($planTitle, 'one-month') => Carbon::now()->addMonth(),

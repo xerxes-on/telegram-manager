@@ -5,12 +5,11 @@ namespace App\Telegram;
 use App\Models\Order;
 use App\Models\Plan;
 use App\Models\User;
-use App\Telegram\Services\PayzePaymentService;
 use App\Telegram\Traits\CanAlterUsers;
-use App\Telegram\Traits\CanPayzePay;
 use App\Telegram\Traits\HandlesButtonActions;
 use App\Telegram\Traits\HasPlans;
 use DefStudio\Telegraph\Enums\ChatActions;
+use DefStudio\Telegraph\Exceptions\TelegraphException;
 use DefStudio\Telegraph\Facades\Telegraph;
 use DefStudio\Telegraph\Handlers\WebhookHandler;
 use DefStudio\Telegraph\Keyboard\ReplyKeyboard;
@@ -18,7 +17,7 @@ use Illuminate\Support\Stringable;
 
 class Handler extends WebhookHandler
 {
-    use CanAlterUsers, HasPlans, HandlesButtonActions, CanPayzePay;
+    use CanAlterUsers, HasPlans, HandlesButtonActions;
 
     public function chat_id(): int
     {
@@ -55,6 +54,9 @@ class Handler extends WebhookHandler
         }
     }
 
+    /**
+     * @throws TelegraphException
+     */
     public function handleChatMessage(Stringable $text): void
     {
         $chatId = $this->chat_id();
@@ -62,7 +64,7 @@ class Handler extends WebhookHandler
         $state = $stateArr['state'] ?? null;
         $data = $stateArr['data'] ?? null;
 
-        $message = trim($text); // Normalize spaces/newlines
+        $message = trim($text);
         Telegraph::chat($chatId)->chatAction(ChatActions::TYPING)->send();
 
         switch ($message) {
@@ -94,11 +96,6 @@ class Handler extends WebhookHandler
             ->send();
     }
 
-    /**
-     * If the user typed an unknown command, handle it here.
-     *
-     * @param  Stringable  $text
-     */
     protected function handleUnknownCommand(Stringable $text): void
     {
         $keyboard = ReplyKeyboard::make()
@@ -141,26 +138,10 @@ class Handler extends WebhookHandler
             ]);
         }
         Telegraph::chat($this->chat_id())
-            ->message('To\'lov sahifasi
-                 '.route('process.payment', [
+            ->message('To\'lov sahifasi: '.route('process.payment', [
                     'chatId' => $this->chat_id(),
                     'orderId' => $existingOrder->id
                 ]))
-            ->send();
-//        $this->processPaymentOneTime($planModel, $user);
-//        $this->sendChannelLink();
-    }
-
-    private function sendChannelLink(): void
-    {
-//        $signedUrl = URL::temporarySignedRoute('share-link', now()->addMinutes(5), [
-//            'chat_id' => $this->chat_id(),
-//        ]);
-        $signedUrl = env('TELEGRAM_CHANNEL_LINK');
-        $linkMessage = "<a href='{$signedUrl}' style='font-style: normal'>✨ Kanal uchun maxsus link</a>";
-
-        Telegraph::chat($this->chat_id())
-            ->html($linkMessage)
             ->send();
     }
 
@@ -222,7 +203,7 @@ class Handler extends WebhookHandler
         $this->clearState($chatId);
 
         Telegraph::chat($chatId)
-            ->message("Rahmat, {$message}! Ma'lumotlaringiz saqlandi. 🎉")
+            ->message("Rahmat, $message! Ma'lumotlaringiz saqlandi. 🎉")
             ->replyKeyboard(ReplyKeyboard::make()
                 ->button('💳 Тўлов')
                 ->button('📋 Обуна ҳолати')
@@ -233,61 +214,4 @@ class Handler extends WebhookHandler
         $this->sendPlans();
     }
 
-    public function handleSuccessfulPayment(User $user, float $amount, string $currency): void
-    {
-        $payzeService = app(PayzePaymentService::class);
-        $payzeService->handleSuccessfulOneTimePayment($user, $amount, $currency);
-    }
-
-
-    public function pay(): void
-    {
-        $user = User::where('chat_id', $this->chat_id())->first();
-
-        if (!$user) {
-            Telegraph::chat($this->chat_id())
-                ->message("Фойдаланувчи топилмади.")
-                ->send();
-            return;
-        }
-
-        if (!$user->cards()->exists()) {
-            Telegraph::chat($this->chat_id())
-                ->message("Карта маълумотлари топилмади.")
-                ->send();
-            return;
-        }
-
-        $activeSubscription = $user->subscriptions()
-            ->where('status', 'active')
-            ->first();
-
-        if ($activeSubscription) {
-            Telegraph::chat($this->chat_id())
-                ->message("Сизда аллақачон актив обуна мавжуд.")
-                ->send();
-            return;
-        }
-
-        $order = Order::where('user_id', $user->id)
-            ->whereIn('status', ['created', 'pending'])
-            ->first();
-
-        if ($order) {
-            $paymentLink = $this->generatePaymentLink($order);
-
-            Telegraph::chat($this->chat_id())
-                ->message("Тўлов линкини босинг: $paymentLink")
-                ->send();
-        } else {
-            Telegraph::chat($this->chat_id())
-                ->message("Активный план топилмади.")
-                ->send();
-        }
-    }
-
-    private function generatePaymentLink(Order $order): string
-    {
-        return "https://payment.example.com/order/{$order->id}";
-    }
 }
