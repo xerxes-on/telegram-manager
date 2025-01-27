@@ -13,7 +13,7 @@ trait HandlesButtonActions
     public function processSupportButton(): void
     {
         Telegraph::chat($this->chat_id())
-            ->message("🙌 Қўллаб-қувватлаш учун бизга мурожаат қилинг: @xerxeson")
+            ->message("🙌 Qo'llab quvvatlash uchun adminga murojaat qiling: @xerxeson")
             ->send();
     }
 

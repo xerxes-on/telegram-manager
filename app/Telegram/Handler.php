@@ -12,6 +12,7 @@ use DefStudio\Telegraph\Enums\ChatActions;
 use DefStudio\Telegraph\Exceptions\TelegraphException;
 use DefStudio\Telegraph\Facades\Telegraph;
 use DefStudio\Telegraph\Handlers\WebhookHandler;
+use DefStudio\Telegraph\Keyboard\ReplyButton;
 use DefStudio\Telegraph\Keyboard\ReplyKeyboard;
 use Illuminate\Support\Stringable;
 
@@ -27,19 +28,16 @@ class Handler extends WebhookHandler
     public function start(): void
     {
         Telegraph::chat($this->chat_id())
-            ->reactWithEmoji($this->request['message']['message_id'], '🤗')->send();
+            ->reactWithEmoji($this->request['message']['message_id'], '👋')->send();
 
         Telegraph::chat($this->chat_id())
             ->message(
-                "Ассалому алайкум! Янги \"ISAEV Full Contact\" лойиҳамизга Хуш келибсиз!\n\n".
-                "У канал обуначиларига ёнимда юрган шогирдга муносабат қилгандек ".
-                "ёндашишга харакат қиламан!\n\n".
-                "Бу каналда:\n".
-                "1. Кўпроқ аудио ва видео постлар бўлади.\n".
-                "2. Кунлик хаётимдан кўпроқ инсайтлар кўрсатиб бораман.\n".
-                "3. Ора-орада ЁПИҚ Zoom-учрашувлар уюштириб турамиз!\n".
-                "4. Бошқа қизиқ ва қиймат берувчи сюрпризлар!\n\n".
-                "Ойлик обуна 500 000 сум."
+                "Assalomu aleykum! Yangi \"Anvar Abduqayum Full Contact\" loyihamizga xush kelibsiz!\n\n".
+                "Ushbu kanal uchun alohida vaqt ajratib zavq bilan ".
+                "yondashishga harakat qilaman!\n\n".
+                "Bu kanalda:\n".
+                "1. Faqat foydali content.\n".
+                "Oylik obuna 500 000 so'm."
             )
             ->send();
 
@@ -68,15 +66,15 @@ class Handler extends WebhookHandler
         Telegraph::chat($chatId)->chatAction(ChatActions::TYPING)->send();
 
         switch ($message) {
-            case '💳 Тўлов':
+            case "💳 To'lov":
                 $this->sendPlans();
                 return;
 
-            case '📋 Обуна ҳолати':
+            case '📋 Obuna holati':
                 $this->processSubscriptionStatusButton();
                 return;
 
-            case '🆘 Қўллаб-қувватлаш':
+            case "🆘 Yordam":
                 $this->processSupportButton();
                 return;
         }
@@ -90,19 +88,31 @@ class Handler extends WebhookHandler
                 $this->processUserName($chatId, $message, $data);
                 return;
         }
-
+        $keyboard = ReplyKeyboard::make()
+            ->row([
+                ReplyButton::make("💳 To'lov"),
+                ReplyButton::make("📋 Obuna holati"),
+            ])->chunk(2)
+            ->row([
+                ReplyButton::make('🆘 Yordam')->requestQuiz(),
+            ])->chunk(1)
+            ->resize();
         Telegraph::chat($chatId)
             ->message("🤷‍ Kechirasiz, bu buyruqni tushunmadim.")
+            ->replyKeyboard($keyboard)
             ->send();
     }
 
     protected function handleUnknownCommand(Stringable $text): void
     {
         $keyboard = ReplyKeyboard::make()
-            ->button('💳 Тўлов')
-            ->button('📋 Обуна ҳолати')
-            ->button('🆘 Қўллаб-қувватлаш')
-            ->chunk(3)
+            ->row([
+                ReplyButton::make("💳 To'lov"),
+                ReplyButton::make("📋 Obuna holati"),
+            ])->chunk(2)
+            ->row([
+                ReplyButton::make('🆘 Yordam')->requestQuiz(),
+            ])->chunk(1)
             ->resize();
         Telegraph::chat($this->chat_id())
             ->message("🤷‍ Kechirasiz, bu buyruqni tushunmadim.")
