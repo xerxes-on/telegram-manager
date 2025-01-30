@@ -21,15 +21,11 @@ trait CanAlterUsers
     {
         return User::where('chat_id', $chat_id)->exists();
     }
+    public function getUser(int $chat_id): User
+    {
+        return User::where('chat_id', $chat_id)->first();
+    }
 
-    /**
-     * Save a user's state to a file as JSON.
-     *
-     * @param  int     $chatId
-     * @param  string  $state
-     * @param  string  $data
-     * @return void
-     */
     private function setState(int $chatId, string $state, string $data = ''): void
     {
         $filePath = $this->getStateFilePath($chatId);
@@ -101,6 +97,8 @@ trait CanAlterUsers
     }
     public function askForPhoneNumber(): void
     {
+        $this->setState($this->chat_id(), 'waiting_for_phone');
+
         $keyboard = ReplyKeyboard::make()
             ->button('🫣Send Contact')->requestContact()->resize();
         Telegraph::chat($this->chat_id())

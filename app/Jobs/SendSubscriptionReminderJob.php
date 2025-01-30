@@ -3,6 +3,7 @@
 namespace App\Jobs;
 
 use App\Models\User;
+use App\Telegram\Services\HandleChannel;
 use Carbon\Carbon;
 use DefStudio\Telegraph\Facades\Telegraph;
 use Illuminate\Contracts\Queue\ShouldQueue;
@@ -30,19 +31,29 @@ class SendSubscriptionReminderJob implements ShouldQueue
         $threeDaysBefore = $today->copy()->addDays(3)->toDateString();
         $twelveDaysBefore = $today->copy()->addDays(12)->toDateString();
 
+        // Get users whose subscription is about to expire or has expired
         $users = User::whereDate('expire_date', $threeDaysBefore)
             ->orWhereDate('expire_date', $twelveDaysBefore)
+            ->orWhere('expire_date', '<', $today->toDateString())
             ->get();
 
         foreach ($users as $user) {
             $daysLeft = $user->subscription_expires_at->diffInDays($today);
-            $message = "Assalomu alaykum, {$user->name}!\n\n".
-                "Eslatma: Sizning obunangiz $daysLeft kundan keyin tugaydi.\n".
-                "Obunani yangilashni unutmang, xizmatlarimizdan uzluksiz foydalanishingiz uchun :)";
 
-            Telegraph::chat($user->chat_id)
-                ->message($message)
-                ->send();
+            if ($daysLeft > 0) {
+                // Send reminder message if subscription is about to expire
+                $message = "Assalomu alaykum, {$user->name}!\n\n".
+                    "Eslatma: Sizning obunangiz $daysLeft kundan keyin tugaydi.\n".
+                    "Obunani yangilashni unutmang, xizmatlarimizdan uzluksiz foydalanishingiz uchun :)";
+
+                Telegraph::chat($user->chat_id)
+                    ->message($message)
+                    ->send();
+            } else {
+                // Kick user out of the channel if subscription has expired
+                $handleChannel = new HandleChannel($user);
+                $handleChannel->kickUser();
+            }
         }
     }
 }

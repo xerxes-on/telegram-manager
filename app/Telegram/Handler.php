@@ -5,6 +5,7 @@ namespace App\Telegram;
 use App\Models\Order;
 use App\Models\Plan;
 use App\Models\User;
+use App\Telegram\Services\HandleChannel;
 use App\Telegram\Traits\CanAlterUsers;
 use App\Telegram\Traits\HandlesButtonActions;
 use App\Telegram\Traits\HasPlans;
@@ -47,7 +48,6 @@ class Handler extends WebhookHandler
             $this->sendPlans();
         } else {
             // If not registered, set state to request phone number
-            $this->setState($this->chat_id(), 'waiting_for_phone');
             $this->askForPhoneNumber();
         }
     }
@@ -201,8 +201,9 @@ class Handler extends WebhookHandler
                 ->send();
             return;
         }
-
+        $userId = $this->request['message']['from']['id'];
         User::create([
+            'user_id' => $userId,
             'chat_id' => $chatId,
             'phone_number' => $phoneNumber,
             'name' => $message,
@@ -222,6 +223,28 @@ class Handler extends WebhookHandler
             ->send();
 
         $this->sendPlans();
+    }
+
+    public function getStatus(): void
+    {
+        if (!$this->isRegistered($this->chat_id())) {
+            $this->askForPhoneNumber();
+        } else {
+            $handler = new HandleChannel($this->getUser($this->chat_id()));
+            $handler->getChannelUser();
+        }
+    }
+
+    public function addme(): void
+    {
+        $handler = new HandleChannel($this->getUser($this->chat_id()));
+        $handler->generateInviteLink();
+    }
+
+    public function kickme(): void
+    {
+        $handler = new HandleChannel($this->getUser($this->chat_id()));
+        $handler->kickUser();
     }
 
 }

@@ -2,53 +2,81 @@
 
 namespace App\Telegram\Services;
 
+use App\Models\User;
 use DefStudio\Telegraph\Facades\Telegraph;
+use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Log;
 
 class HandleChannel
 {
-    /**
-     * Add a user to a specific Telegram channel.
-     *
-     * @param int $userId Telegram user ID
-     * @param string $channelUsername Channel username (e.g., '@my_channel')
-     * @return bool
-     */
-    public function addUserToChannel(int $userId, string $channelUsername): bool
+    protected string $token;
+    protected string $channelId;
+    protected object $user;
+
+    public function __construct(User $user)
     {
-        try {
-            Telegraph::bot('default')
-                ->addChatMember($channelUsername, $userId)
-                ->send();
+        $this->token = env('TELEGRAM_BOT_TOKEN');
+        $this->channelId = env('CHANNEL_ID');
+        $this->user = $user;
+    }
 
-            return true; // User successfully added
-        } catch (\Exception $e) {
-            // Log the error for debugging
-            \Log::error('Error adding user to channel: ' . $e->getMessage());
+    public function getChannelUser(): void
+    {
+        $response = Http::get("https://api.telegram.org/bot".$this->token."/getChatMember", [
+            'chat_id' => $this->channelId,
+            'user_id' => $this->user->user_id,
+        ]);
 
-            return false; // User addition failed
+        $result = $response->json();
+
+        $status = $result['result']['status'];
+        Telegraph::chat($this->user->chat_id)->message($status)->send();
+    }
+
+    public function generateInviteLink(): void
+    {
+        $response = Http::post("https://api.telegram.org/bot".$this->token."/createChatInviteLink", [
+            'chat_id' => $this->channelId,
+            'member_limit' => 1,
+            'expire_date' => now()->addDay()->timestamp,
+        ]);
+        $result = $response->json();
+        $inviteLink = $result['result']['invite_link'];
+        if ($inviteLink) {
+            Telegraph::chat($this->user->chat_id)->html($inviteLink)->send();
+        } else {
+            Telegraph::chat($this->user->chat_id)->message("Aah nimadir o'xshamadi :(\n Qo'llab-quvvatlashga murojaat qiling 🙃")->send();
         }
     }
 
-    /**
-     * Remove a user from a specific Telegram channel.
-     *
-     * @param int $userId Telegram user ID
-     * @param string $channelUsername Channel username (e.g., '@my_channel')
-     * @return bool
-     */
-    public function removeUserFromChannel(int $userId, string $channelUsername): bool
+    public function kickUser(): void
     {
-        try {
-            Telegraph::bot()
-                ->kickChatMember($channelUsername, $userId)
-                ->send();
+        $kickResponse = Http::post("https://api.telegram.org/bot".$this->token."/banChatMember", [
+            'chat_id' => $this->channelId,
+            'user_id' => $this->user->user_id,
+            'revoke_messages' => true,
+        ]);
 
-            return true; // User successfully removed
-        } catch (\Exception $e) {
-            // Log the error for debugging
-            \Log::error('Error removing user from channel: ' . $e->getMessage());
+        if ($kickResponse->ok() && $kickResponse->json()['ok']) {
+            Log::info("User kicked successfully!");
+            sleep(10);
+            $unbanResponse = Http::post("https://api.telegram.org/bot".$this->token."/unbanChatMember", [
+                'chat_id' => $this->channelId,
+                'user_id' => $this->user->user_id,
+                'only_if_banned' => true,
+            ]);
 
-            return false; // User removal failed
+            if ($unbanResponse->ok() && $unbanResponse->json()['ok']) {
+                $sticker = "CAACAgIAAxkBAAExQ3JnmzHSzshIUs2brFvaukLwJ3otPAACjg4AAjQCWEhEXiZTgoIOajYE";
+                Telegraph::chat($this->user->chat_id)
+                    ->sticker($sticker)->send();
+
+                Telegraph::chat($this->user->chat_id)->message("Siz kanaldan chiqarib yuborildingiz\nIltimos obuna bo'ling, sizni sog'inamiz😢")->send();
+            } else {
+                Log::info("Failed to unban user: ".($unbanResponse->json()['description'] ?? 'Unknown error'));
+            }
+        } else {
+            Log::alert("Failed to kick user: ".($kickResponse->json()['description'] ?? 'Unknown error'));
         }
     }
 }

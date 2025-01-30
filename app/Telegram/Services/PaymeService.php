@@ -7,6 +7,7 @@ use App\Models\Order;
 use App\Models\Subscription;
 use App\Models\Transaction;
 use App\Models\User;
+use App\Telegram\Traits\CanAlterUsers;
 use Carbon\Carbon;
 use DefStudio\Telegraph\Facades\Telegraph;
 use DefStudio\Telegraph\Handlers\WebhookHandler;
@@ -14,6 +15,7 @@ use DefStudio\Telegraph\Handlers\WebhookHandler;
 
 #[AllowDynamicProperties] class PaymeService extends WebhookHandler
 {
+    use CanAlterUsers;
 
     public function checkPerformTransaction(array $params): array
     {
@@ -189,14 +191,13 @@ use DefStudio\Telegraph\Handlers\WebhookHandler;
                     ->sticker($sticker)->send();
 
                 Telegraph::chat($this->chat_id)
-                    ->message("🎉 Obuna yaratildi! \nMuddati: ".$expires."\n Foydali qadam 😇")->send();
+                    ->message("🎉 Mavaffaqiyatga yana bir qadam! \nMuddati: ".$expires."\n Foydali qadam 😇")->send();
 
-                Telegraph::chat($this->chat_id)
-                    ->message("Kanalga qo'shiling va admin tasdiqlashini kuting 🙂\n ".env('TELEGRAM_CHANNEL_LINK'))
-                    ->send();
+                $handler = new HandleChannel($this->getUser($this->chat_id));
+                $handler->generateInviteLink();
 
                 Telegraph::chat($this->admin_chat_id)
-                    ->message("Yangi obuna yaratildi 🎉\nIltimos tezda kanalga obunani tasdiqlang.\nIsm: ".$user->name." \nTel raqam: ".$user->phone_number."\nObuna: ".$order->plan->name)
+                    ->message("Yangi obuna yaratildi 🎉.\nIsm: ".$user->name." \nTel raqam: ".$user->phone_number."\nObuna: ".$order->plan->name)
                     ->send();
             }
             return [
