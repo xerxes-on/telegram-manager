@@ -17,6 +17,7 @@ return new class extends Migration
             $table->boolean('status')->default(True);
             $table->string('receipt_id');
             $table->date('expires_at');
+            $table->foreignId('plan_id')->constrained()->cascadeOnDelete();
             $table->timestamps();
         });
     }

@@ -27,6 +27,6 @@ class TransactionResource extends JsonResource
             'transaction' => $this->id,
             'state' => $this->state,
             'reason' => $this->reason
-        ];;
+        ];
     }
 }

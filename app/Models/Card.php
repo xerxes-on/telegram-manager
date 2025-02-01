@@ -10,6 +10,7 @@ class Card extends Model
     protected $fillable = [
         'user_id', 'token', 'masked_number', 'expire', 'phone', 'verified_at', 'verified'
     ];
+
     public function user(): BelongsTo
     {
         return $this->belongsTo(User::class);

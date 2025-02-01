@@ -4,9 +4,7 @@ namespace App\Filament\Resources\MessageResource\Pages;
 
 use App\Filament\Resources\MessageResource;
 use App\Jobs\BroadcastMessageJob;
-use App\Models\Message;
 use App\Models\User;
-use App\Telegram\Traits\SendMessages;
 use Filament\Resources\Pages\CreateRecord;
 
 class CreateMessage extends CreateRecord

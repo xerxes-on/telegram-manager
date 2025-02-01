@@ -27,7 +27,6 @@ trait CanUsePayme
 
     public function callRecurrentPay(Plan $plan, User $user): void
     {
-
         $service = new PaycomSubscriptionService($this->chat_id());
         $service->receiptsCreate($plan, $user);
     }

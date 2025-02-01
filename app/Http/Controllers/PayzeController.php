@@ -13,8 +13,8 @@ class PayzeController extends \PayzeIO\LaravelPayze\Controllers\PayzeController
      * Do any transaction related operations and return a response
      * If nothing is returned, default response will be used
      *
-     * @param \PayzeIO\LaravelPayze\Models\PayzeTransaction $transaction
-     * @param \Illuminate\Http\Request $request
+     * @param  PayzeTransaction  $transaction
+     * @param  Request  $request
      *
      * @return mixed
      */
@@ -32,8 +32,8 @@ class PayzeController extends \PayzeIO\LaravelPayze\Controllers\PayzeController
      * Do any transaction related operations and return a response
      * If nothing is returned, default response will be used
      *
-     * @param \PayzeIO\LaravelPayze\Models\PayzeTransaction $transaction
-     * @param \Illuminate\Http\Request $request
+     * @param  PayzeTransaction  $transaction
+     * @param  Request  $request
      *
      * @return mixed
      */

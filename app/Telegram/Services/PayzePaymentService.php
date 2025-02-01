@@ -6,10 +6,8 @@ use App\Models\Order;
 use App\Models\Plan;
 use App\Models\Subscription;
 use App\Models\User;
-use App\Models\UserPaymentMethod;
 use Carbon\Carbon;
 use DefStudio\Telegraph\Facades\Telegraph;
-use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use PayzeIO\LaravelPayze\Facades\Payze;
 
@@ -124,6 +122,7 @@ class PayzePaymentService
             Log::log('Not successful payment');
         }
     }
+
     public function handleSuccessfulOneTimePayment(User $user, float $amount, string $currency = 'UZS'): void
     {
         $expiresAt = Carbon::now()->addMonths(1); // Example: 1 month subscription
@@ -131,8 +130,8 @@ class PayzePaymentService
         Subscription::create([
             'user_id' => $user->id,
             'expires_at' => $expiresAt,
-            'status' => 'active' ,
-            'order_id'=>1
+            'status' => 'active',
+            'order_id' => 1
         ]);
 
         $channelLink = env('TELEGRAM_CHANNEL_LINK');

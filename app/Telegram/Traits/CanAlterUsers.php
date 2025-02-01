@@ -21,15 +21,48 @@ trait CanAlterUsers
     {
         return User::where('chat_id', $chat_id)->exists();
     }
+
     public function getUser(int $chat_id): User
     {
         return User::where('chat_id', $chat_id)->first();
     }
 
+    /**
+     * (Optional) You can add any helper method to send user data or
+     * fetch user info, for instance:
+     *
+     * @param  int  $chatId
+     * @return void
+     */
+    public function sendUserData(int $chatId): void
+    {
+        $user = User::where('chat_id', $chatId)->first();
+        if ($user) {
+            // You can modify this message to include any relevant user data
+            Telegraph::chat($chatId)
+                ->message("Sizning ma'lumotlaringiz:\n".
+                    "Ism: {$user->name}\n".
+                    "Telefon: {$user->phone_number}")
+                ->send();
+        }
+    }
+
+    public function askForPhoneNumber(): void
+    {
+        $this->setState($this->chat_id(), 'waiting_for_phone');
+
+        $keyboard = ReplyKeyboard::make()
+            ->button('🫣Send Contact')->requestContact()->resize();
+        Telegraph::chat($this->chat_id())
+            ->message('Telefon raqamingizni yuboring :)')
+            ->replyKeyboard($keyboard)
+            ->send();
+    }
+
     private function setState(int $chatId, string $state, string $data = ''): void
     {
         $filePath = $this->getStateFilePath($chatId);
-        $content  = json_encode(['state' => $state, 'data' => $data]);
+        $content = json_encode(['state' => $state, 'data' => $data]);
         file_put_contents($filePath, $content);
     }
 
@@ -74,36 +107,5 @@ trait CanAlterUsers
         if (file_exists($filePath)) {
             unlink($filePath);
         }
-    }
-
-    /**
-     * (Optional) You can add any helper method to send user data or
-     * fetch user info, for instance:
-     *
-     * @param  int  $chatId
-     * @return void
-     */
-    public function sendUserData(int $chatId): void
-    {
-        $user = User::where('chat_id', $chatId)->first();
-        if ($user) {
-            // You can modify this message to include any relevant user data
-            \DefStudio\Telegraph\Facades\Telegraph::chat($chatId)
-                ->message("Sizning ma'lumotlaringiz:\n".
-                    "Ism: {$user->name}\n".
-                    "Telefon: {$user->phone_number}")
-                ->send();
-        }
-    }
-    public function askForPhoneNumber(): void
-    {
-        $this->setState($this->chat_id(), 'waiting_for_phone');
-
-        $keyboard = ReplyKeyboard::make()
-            ->button('🫣Send Contact')->requestContact()->resize();
-        Telegraph::chat($this->chat_id())
-            ->message('Telefon raqamingizni yuboring :)')
-            ->replyKeyboard($keyboard)
-            ->send();
     }
 }

@@ -22,56 +22,73 @@ class HandleChannel
 
     public function getChannelUser(): void
     {
-        $response = Http::get("https://api.telegram.org/bot".$this->token."/getChatMember", [
+        $response = Http::get("https://api.telegram.org/bot{$this->token}/getChatMember", [
             'chat_id' => $this->channelId,
             'user_id' => $this->user->user_id,
         ]);
 
         $result = $response->json();
+        $status = $result['result']['status'] ?? 'unknown';
 
-        $status = $result['result']['status'];
         Telegraph::chat($this->user->chat_id)->message($status)->send();
     }
 
     public function generateInviteLink(): void
     {
-        $response = Http::post("https://api.telegram.org/bot".$this->token."/createChatInviteLink", [
+        // First, check if the user is already a member of the channel.
+        $memberResponse = Http::get("https://api.telegram.org/bot{$this->token}/getChatMember", [
+            'chat_id' => $this->channelId,
+            'user_id' => $this->user->user_id,
+        ]);
+
+        $memberResult = $memberResponse->json();
+        $status = $memberResult['result']['status'] ?? null;
+
+        if (in_array($status, ['member', 'administrator', 'creator'])) {
+            return;
+        }
+
+        $response = Http::post("https://api.telegram.org/bot{$this->token}/createChatInviteLink", [
             'chat_id' => $this->channelId,
             'member_limit' => 1,
             'expire_date' => now()->addDay()->timestamp,
         ]);
+
         $result = $response->json();
-        $inviteLink = $result['result']['invite_link'];
+        $inviteLink = $result['result']['invite_link'] ?? null;
+
         if ($inviteLink) {
             Telegraph::chat($this->user->chat_id)->html($inviteLink)->send();
         } else {
-            Telegraph::chat($this->user->chat_id)->message("Aah nimadir o'xshamadi :(\n Qo'llab-quvvatlashga murojaat qiling 🙃")->send();
+            Telegraph::chat($this->user->chat_id)
+                ->message("Aah nimadir o'xshamadi :(\nQo'llab-quvvatlashga murojaat qiling 🙃")
+                ->send();
         }
     }
 
     public function kickUser(): void
     {
-        $kickResponse = Http::post("https://api.telegram.org/bot".$this->token."/banChatMember", [
+        $kickResponse = Http::post("https://api.telegram.org/bot{$this->token}/banChatMember", [
             'chat_id' => $this->channelId,
             'user_id' => $this->user->user_id,
             'revoke_messages' => true,
         ]);
 
-        if ($kickResponse->ok() && $kickResponse->json()['ok']) {
+        if ($kickResponse->ok() && ($kickResponse->json()['ok'] ?? false)) {
             Log::info("User kicked successfully!");
-            sleep(10);
-            $unbanResponse = Http::post("https://api.telegram.org/bot".$this->token."/unbanChatMember", [
+            $unbanResponse = Http::post("https://api.telegram.org/bot{$this->token}/unbanChatMember", [
                 'chat_id' => $this->channelId,
                 'user_id' => $this->user->user_id,
                 'only_if_banned' => true,
             ]);
 
-            if ($unbanResponse->ok() && $unbanResponse->json()['ok']) {
+            if ($unbanResponse->ok() && ($unbanResponse->json()['ok'] ?? false)) {
                 $sticker = "CAACAgIAAxkBAAExQ3JnmzHSzshIUs2brFvaukLwJ3otPAACjg4AAjQCWEhEXiZTgoIOajYE";
-                Telegraph::chat($this->user->chat_id)
-                    ->sticker($sticker)->send();
+                Telegraph::chat($this->user->chat_id)->sticker($sticker)->send();
 
-                Telegraph::chat($this->user->chat_id)->message("Siz kanaldan chiqarib yuborildingiz\nIltimos obuna bo'ling, sizni sog'inamiz😢")->send();
+                Telegraph::chat($this->user->chat_id)
+                    ->message("Siz kanaldan chiqarib yuborildingiz\nIltimos obuna bo'ling, sizni sog'inamiz😢")
+                    ->send();
             } else {
                 Log::info("Failed to unban user: ".($unbanResponse->json()['description'] ?? 'Unknown error'));
             }

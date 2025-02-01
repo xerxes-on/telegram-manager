@@ -14,26 +14,6 @@ use Illuminate\Support\Facades\Cache;
  */
 trait HasPlans
 {
-    /**
-     * Show the available subscription plans.
-     *
-     * @return void
-     */
-    private function sendPlans(): void
-    {
-        Telegraph::chat($this->chat_id())
-            ->message('Obuna muddatini tanlang 👇')
-            ->keyboard(
-                Keyboard::make()->buttons([
-                    Button::make('1-hafta bepul')->action('savePlan')->param('plan', 'one-week-free')->width(0.3),
-                    Button::make('1 oy')->action('savePlan')->param('plan', 'one-month')->width(0.3),
-                    Button::make('2 oy')->action('savePlan')->param('plan', 'two-months')->width(0.3),
-                    Button::make('6 oy')->action('savePlan')->param('plan', 'six-months')->width(0.5),
-                    Button::make('1 yil')->action('savePlan')->param('plan', 'one-year')->width(0.5),
-                ])
-            )->send();
-    }
-
     public function processCardDetails($card): void
     {
         $card = str_replace(' ', '', $card);
@@ -44,11 +24,17 @@ trait HasPlans
                 ->send();
         } else {
             $this->clearState($this->chat_id());
-            if(!Cache::has($this->chat_id()."card")){
+            if (!Cache::has($this->chat_id()."card")) {
                 Cache::put($this->chat_id()."card", $card, now()->addMinutes(10));
             }
             $this->askForExpireDate();
         }
+    }
+
+    public function askForExpireDate(): void
+    {
+        $this->setState($this->chat_id(), 'waiting_for_card_expire');
+        Telegraph::chat($this->chat_id())->message("💳Amal qilish muddatini yuboring (10/29): ")->send();
     }
 
     public function processCardExpire(string $expire): void
@@ -85,6 +71,16 @@ trait HasPlans
         }
     }
 
+    public function askForCardDetails(): void
+    {
+        $card = Card::where('user_id', User::where('chat_id', $this->chat_id())->first()->id)->first();
+        if (!empty($card)) {
+            $card->delete();
+        }
+        $this->setState($this->chat_id(), 'waiting_for_card');
+        Telegraph::chat($this->chat_id())->message("💳Karta raqamini yuboring:")->send();
+    }
+
     public function processVerificationCode(string $code): void
     {
         $user = User::where('chat_id', $this->chat_id())->first();
@@ -95,16 +91,24 @@ trait HasPlans
         }
     }
 
-    public function askForExpireDate(): void
+    /**
+     * Show the available subscription plans.
+     *
+     * @return void
+     */
+    private function sendPlans(): void
     {
-        $this->setState($this->chat_id(), 'waiting_for_card_expire');
-        Telegraph::chat($this->chat_id())->message("💳Amal qilish muddatini yuboring (10/29): ")->send();
-    }
-
-    public function askForCardDetails(): void
-    {
-        $this->setState($this->chat_id(), 'waiting_for_card');
-        Telegraph::chat($this->chat_id())->message("💳Karta raqamini yuboring:")->send();
+        Telegraph::chat($this->chat_id())
+            ->message('Obuna muddatini tanlang 👇')
+            ->keyboard(
+                Keyboard::make()->buttons([
+                    Button::make('1-hafta bepul')->action('savePlan')->param('plan', 'one-week-free')->width(0.3),
+                    Button::make('1 oy')->action('savePlan')->param('plan', 'one-month')->width(0.3),
+                    Button::make('2 oy')->action('savePlan')->param('plan', 'two-months')->width(0.3),
+                    Button::make('6 oy')->action('savePlan')->param('plan', 'six-months')->width(0.5),
+                    Button::make('1 yil')->action('savePlan')->param('plan', 'one-year')->width(0.5),
+                ])
+            )->send();
     }
 
     public function hasVerifiedCard(): bool

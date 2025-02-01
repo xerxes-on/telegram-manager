@@ -1,8 +1,7 @@
 <?php
 
+use App\Jobs\RenewSubscriptionsJob;
 use App\Jobs\SendSubscriptionReminderJob;
-use Illuminate\Foundation\Inspiring;
-use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Schedule;
 
 //Artisan::command('inspire', function () {
@@ -10,3 +9,6 @@ use Illuminate\Support\Facades\Schedule;
 //})->purpose('Display an inspiring quote')->hourly();
 Schedule::job(SendSubscriptionReminderJob::class)
     ->daily();
+Schedule::job(RenewSubscriptionsJob::class)
+    ->hourly();
+

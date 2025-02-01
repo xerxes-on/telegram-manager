@@ -2,8 +2,9 @@
 
 namespace App\Http\Controllers;
 
-use App\Http\Controllers\Controller;
 use App\Telegram\Services\PaymeService;
+use Exception;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
 class PaymeController extends Controller
@@ -18,9 +19,9 @@ class PaymeController extends Controller
     /**
      * Single endpoint to handle all Payme JSON-RPC requests.
      *
-     * @throws \Exception
+     * @throws Exception
      */
-    public function handlePaymeRequest(Request $request): \Illuminate\Http\JsonResponse
+    public function handlePaymeRequest(Request $request): JsonResponse
     {
         // JSON-RPC standard fields
         $method = $request->input('method');
@@ -50,35 +51,17 @@ class PaymeController extends Controller
     }
 
     /**
-     * Dispatch Payme methods to the appropriate service handler.
+     * Helper to format JSON-RPC errors.
      */
-    private function dispatchMethod(string $method, array $params): array
+    private function jsonRpcError($requestId, int $code, $message): JsonResponse
     {
-        switch ($method) {
-            case 'CheckPerformTransaction':
-                return $this->paymeService->checkPerformTransaction($params);
-
-            case 'CreateTransaction':
-                return $this->paymeService->createTransaction($params);
-
-            case 'CheckTransaction':
-                return $this->paymeService->checkTransaction($params);
-
-            case 'PerformTransaction':
-                return $this->paymeService->performTransaction($params);
-
-//            case 'CancelTransaction':
-//                return $this->paymeService->cancelTransaction($params);
-
-            case 'GetStatement':
-                return $this->paymeService->getStatement($params);
-
-            case 'ChangePassword':
-                return $this->paymeService->changePassword();
-
-            default:
-                return $this->error(-32601, 'Method not found.');
-        }
+        return response()->json([
+            'id' => $requestId,
+            'error' => [
+                'code' => $code,
+                'message' => $message,
+            ],
+        ]);
     }
 
     /**
@@ -112,17 +95,35 @@ class PaymeController extends Controller
     }
 
     /**
-     * Helper to format JSON-RPC errors.
+     * Dispatch Payme methods to the appropriate service handler.
      */
-    private function jsonRpcError($requestId, int $code, $message): \Illuminate\Http\JsonResponse
+    private function dispatchMethod(string $method, array $params): array
     {
-        return response()->json([
-            'id' => $requestId,
-            'error' => [
-                'code' => $code,
-                'message' => $message,
-            ],
-        ]);
+        switch ($method) {
+            case 'CheckPerformTransaction':
+                return $this->paymeService->checkPerformTransaction($params);
+
+            case 'CreateTransaction':
+                return $this->paymeService->createTransaction($params);
+
+            case 'CheckTransaction':
+                return $this->paymeService->checkTransaction($params);
+
+            case 'PerformTransaction':
+                return $this->paymeService->performTransaction($params);
+
+//            case 'CancelTransaction':
+//                return $this->paymeService->cancelTransaction($params);
+
+            case 'GetStatement':
+                return $this->paymeService->getStatement($params);
+
+            case 'ChangePassword':
+                return $this->paymeService->changePassword();
+
+            default:
+                return $this->error(-32601, 'Method not found.');
+        }
     }
 
     /**

@@ -24,11 +24,6 @@ class Handler extends WebhookHandler
 {
     use CanAlterUsers, HasPlans, HandlesButtonActions, CanUsePayme;
 
-    public function chat_id(): int
-    {
-        return $this->chat->chat_id;
-    }
-
     public function start(): void
     {
         Telegraph::chat($this->chat_id())
@@ -53,6 +48,11 @@ class Handler extends WebhookHandler
             // If not registered, set state to request phone number
             $this->askForPhoneNumber();
         }
+    }
+
+    public function chat_id(): int
+    {
+        return $this->chat->chat_id;
     }
 
     /**
@@ -113,56 +113,6 @@ class Handler extends WebhookHandler
         Telegraph::chat($chatId)
             ->message("🤷‍ Kechirasiz, bu buyruqni tushunmadim.")
             ->replyKeyboard($keyboard)
-            ->send();
-    }
-
-    protected function handleUnknownCommand(Stringable $text): void
-    {
-        $keyboard = ReplyKeyboard::make()
-            ->row([
-                ReplyButton::make("💳 To'lov"),
-                ReplyButton::make("📋 Obuna holati"),
-            ])->chunk(2)
-            ->row([
-                ReplyButton::make('🆘 Yordam'),
-            ])->chunk(1)
-            ->resize();
-        Telegraph::chat($this->chat_id())
-            ->message("🤷‍ Kechirasiz, bu buyruqni tushunmadim.")
-            ->replyKeyboard($keyboard)
-            ->send();
-
-    }
-
-    public function savePlan(string $plan): void
-    {
-        if (!$this->hasVerifiedCard()) {
-            $this->askForCardDetails();
-            return;
-        }
-        $planModel = Plan::where('name', $plan)->first();
-        $user = User::where('chat_id', $this->chat_id())->first();
-
-        if (!$planModel || !$user) {
-            $id = $this->request['message']['id'];
-            if (!is_null($id)) {
-                Telegraph::chat($this->chat_id())
-                    ->deleteMessage($id);
-            }
-            Telegraph::chat($this->chat_id())
-                ->message('Something went wrong: plan or user not found.')
-                ->send();
-            return;
-        }
-        $card = Card::where('user_id', $user->id)->where('verified', true)->latest()->first();
-        $keys = Keyboard::make()->buttons([
-            Button::make('✅Tasdiqlash')->action('pay')->param('plan_id', $planModel->id)->width(1),
-            Button::make("♻︎ Kartani o'zgartirish")->action('askForCardDetails')->width(0.8),
-            Button::make("🧐Orqaga")->action('home')->width(0.2),
-        ]);
-        Telegraph::chat($this->chat_id())
-            ->html("Obuna: ".$planModel->name."\nNarxi: ".$planModel->price / 100 ."\nKarta: ".$card->masked_number)
-            ->keyboard($keys)
             ->send();
     }
 
@@ -241,15 +191,38 @@ class Handler extends WebhookHandler
         $this->sendPlans();
     }
 
-    public function getStatus(): void
+    public function savePlan(string $plan): void
     {
-        if (!$this->isRegistered($this->chat_id())) {
-            $this->askForPhoneNumber();
-        } else {
-            $handler = new HandleChannel($this->getUser($this->chat_id()));
-            $handler->getChannelUser();
+        if (!$this->hasVerifiedCard()) {
+            $this->askForCardDetails();
+            return;
         }
+        $planModel = Plan::where('name', $plan)->first();
+        $user = User::where('chat_id', $this->chat_id())->first();
+
+        if (!$planModel || !$user) {
+            $id = $this->request['message']['id'];
+            if (!is_null($id)) {
+                Telegraph::chat($this->chat_id())
+                    ->deleteMessage($id);
+            }
+            Telegraph::chat($this->chat_id())
+                ->message('Something went wrong: plan or user not found.')
+                ->send();
+            return;
+        }
+        $card = Card::where('user_id', $user->id)->where('verified', true)->latest()->first();
+        $keys = Keyboard::make()->buttons([
+            Button::make('✅Tasdiqlash')->action('pay')->param('plan_id', $planModel->id)->width(1),
+            Button::make("♻︎ Kartani o'zgartirish")->action('askForCardDetails')->width(0.8),
+            Button::make("🧐Orqaga")->action('home')->width(0.2),
+        ]);
+        Telegraph::chat($this->chat_id())
+            ->html("Obuna: ".$planModel->name."\nNarxi: ".$planModel->price / 100 ."\nKarta: ".$card->masked_number)
+            ->keyboard($keys)
+            ->send();
     }
+
 
     public function pay(string $plan_id): void
     {
@@ -265,26 +238,33 @@ class Handler extends WebhookHandler
         $this->callRecurrentPay($plan, $user);
     }
 
-    public function home(): void
+
+
+    protected function handleUnknownCommand(Stringable $text): void
     {
-//        $id = $this->request['message']['id'] - 1;
-//        if (!is_null($id)) {
-//            Telegraph::chat($this->chat_id())
-//                ->deleteMessage($id)
-//                ->send();
-//        }
-        $this->sendPlans();
+        $keyboard = ReplyKeyboard::make()
+            ->row([
+                ReplyButton::make("💳 To'lov"),
+                ReplyButton::make("📋 Obuna holati"),
+            ])->chunk(2)
+            ->row([
+                ReplyButton::make('🆘 Yordam'),
+            ])->chunk(1)
+            ->resize();
+        Telegraph::chat($this->chat_id())
+            ->message("🤷‍ Kechirasiz, bu buyruqni tushunmadim.")
+            ->replyKeyboard($keyboard)
+            ->send();
+
     }
-//    public function addme(): void
-//    {
-//        $handler = new HandleChannel($this->getUser($this->chat_id()));
-//        $handler->generateInviteLink();
-//    }
-//
-//    public function kickme(): void
-//    {
-//        $handler = new HandleChannel($this->getUser($this->chat_id()));
-//        $handler->kickUser();
-//    }
+    public function getStatus(): void
+    {
+        if (!$this->isRegistered($this->chat_id())) {
+            $this->askForPhoneNumber();
+        } else {
+            $handler = new HandleChannel($this->getUser($this->chat_id()));
+            $handler->getChannelUser();
+        }
+    }
 
 }

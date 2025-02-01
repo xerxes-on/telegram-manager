@@ -34,5 +34,15 @@ return [
             'channel' => env('SLACK_BOT_USER_DEFAULT_CHANNEL'),
         ],
     ],
+    'paycom' => [
+        'url' => env('PAYME_API_URL'),
+        'id' => env('PAYME_API_ID'),
+        'key' => env('PAYME_API_KEY'),
+    ],
+    'tax' => [
+        'product_code' => env('TAX_PRODUCT_CODE', '10306013001000000'),
+        'package_code' => env('TAX_PACKAGE_CODE', 'package_code'),
+        'vat_percent' => env('TAX_VAT_PERCENT', 4),
+    ],
 
 ];

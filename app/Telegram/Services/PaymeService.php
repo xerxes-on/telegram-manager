@@ -3,6 +3,7 @@
 namespace App\Telegram\Services;
 
 use AllowDynamicProperties;
+use App\Http\Resources\TransactionResource;
 use App\Models\Order;
 use App\Models\Subscription;
 use App\Models\Transaction;
@@ -44,6 +45,19 @@ use DefStudio\Telegraph\Handlers\WebhookHandler;
         return [
             'result' => [
                 'allow' => true,
+            ],
+        ];
+    }
+
+    /**
+     * Helper to format error responses consistently.
+     */
+    private function error(int $code, $message): array
+    {
+        return [
+            'error' => [
+                'code' => $code,
+                'message' => $message,
             ],
         ];
     }
@@ -118,30 +132,6 @@ use DefStudio\Telegraph\Handlers\WebhookHandler;
             'ru' => 'Оплата заказа в данный момент обрабатывается',
             'en' => 'Order payment is currently being processed'
         ]);
-    }
-
-    /**
-     * Check transaction status.
-     */
-    public function checkTransaction(array $params): array
-    {
-        $transaction = Transaction::where('paycom_transaction_id', $params['id'])->first();
-
-        if (!$transaction) {
-            return $this->error(-31003, 'Transaction not found.');
-        }
-
-        // Format response based on transaction state
-        return [
-            'result' => [
-                'create_time' => (int) $transaction->paycom_time,
-                'perform_time' => (int) $transaction->perform_time_unix,
-                'cancel_time' => (int) $transaction->cancel_time,
-                'transaction' => (string) $transaction->id,
-                'state' => (int) $transaction->state,
-                'reason' => $transaction->reason,
-            ],
-        ];
     }
 
     /**
@@ -225,6 +215,30 @@ use DefStudio\Telegraph\Handlers\WebhookHandler;
     }
 
     /**
+     * Check transaction status.
+     */
+    public function checkTransaction(array $params): array
+    {
+        $transaction = Transaction::where('paycom_transaction_id', $params['id'])->first();
+
+        if (!$transaction) {
+            return $this->error(-31003, 'Transaction not found.');
+        }
+
+        // Format response based on transaction state
+        return [
+            'result' => [
+                'create_time' => (int) $transaction->paycom_time,
+                'perform_time' => (int) $transaction->perform_time_unix,
+                'cancel_time' => (int) $transaction->cancel_time,
+                'transaction' => (string) $transaction->id,
+                'state' => (int) $transaction->state,
+                'reason' => $transaction->reason,
+            ],
+        ];
+    }
+
+    /**
      * Cancel a transaction.
      */
     public function cancelTransaction(array $params): array
@@ -301,7 +315,7 @@ use DefStudio\Telegraph\Handlers\WebhookHandler;
 
         return [
             'result' => [
-                'transactions' => \App\Http\Resources\TransactionResource::collection($transactions),
+                'transactions' => TransactionResource::collection($transactions),
             ],
         ];
     }
@@ -312,18 +326,5 @@ use DefStudio\Telegraph\Handlers\WebhookHandler;
     public function changePassword(): array
     {
         return $this->error(-32504, 'Недостаточно привилегий для выполнения метода');
-    }
-
-    /**
-     * Helper to format error responses consistently.
-     */
-    private function error(int $code, $message): array
-    {
-        return [
-            'error' => [
-                'code' => $code,
-                'message' => $message,
-            ],
-        ];
     }
 }

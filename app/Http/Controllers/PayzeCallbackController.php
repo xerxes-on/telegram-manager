@@ -3,11 +3,12 @@
 namespace App\Http\Controllers;
 
 use App\Telegram\Services\PayzePaymentService;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
 class PayzeCallbackController extends Controller
 {
-    public function handleCallback(Request $request, PayzePaymentService $payzeService): \Illuminate\Http\JsonResponse
+    public function handleCallback(Request $request, PayzePaymentService $payzeService): JsonResponse
     {
         // Validate or parse the payload
         $payload = $request->all();
