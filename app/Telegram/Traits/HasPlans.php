@@ -2,9 +2,12 @@
 
 namespace App\Telegram\Traits;
 
+use App\Models\Card;
+use App\Models\User;
 use DefStudio\Telegraph\Facades\Telegraph;
 use DefStudio\Telegraph\Keyboard\Button;
 use DefStudio\Telegraph\Keyboard\Keyboard;
+use Illuminate\Support\Facades\Cache;
 
 /**
  * Trait for handling subscription plans and card input flow.
@@ -18,7 +21,6 @@ trait HasPlans
      */
     private function sendPlans(): void
     {
-        // Create inline buttons with plan parameters
         Telegraph::chat($this->chat_id())
             ->message('Obuna muddatini tanlang 👇')
             ->keyboard(
@@ -30,5 +32,85 @@ trait HasPlans
                     Button::make('1 yil')->action('savePlan')->param('plan', 'one-year')->width(0.5),
                 ])
             )->send();
+    }
+
+    public function processCardDetails($card): void
+    {
+        $card = str_replace(' ', '', $card);
+        $rules = '/^\d{16}$/';
+        if (empty($card) || !preg_match($rules, $card)) {
+            Telegraph::chat($this->chat_id())
+                ->message("Kiritilgan karta raqami noto'g'ri. Iltimos, 16 xonali karta raqamini qayta kiriting:")
+                ->send();
+        } else {
+            $this->clearState($this->chat_id());
+            if(!Cache::has($this->chat_id()."card")){
+                Cache::put($this->chat_id()."card", $card, now()->addMinutes(10));
+            }
+            $this->askForExpireDate();
+        }
+    }
+
+    public function processCardExpire(string $expire): void
+    {
+        if (empty(Cache::get($this->chat_id()."card"))) {
+            $this->askForCardDetails();
+            return;
+        }
+        $expire = trim($expire);
+        $rules = '/^(0[1-9]|1[0-2])\/\d{2}$/';
+        if (empty($expire) || !preg_match($rules, $expire)) {
+            Telegraph::chat($this->chat_id())
+                ->message("Kiritilgan sana noto'g'ri. Masalan: 10/30 yoki 02/28")
+                ->send();
+            return;
+        }
+        list($month, $year) = explode('/', $expire);
+        $month = (int) $month;
+        $year = (int) ('20'.$year);
+        $currentYear = (int) date('Y');
+        $currentMonth = (int) date('m');
+        if ($year < $currentYear || ($year == $currentYear && $month < $currentMonth)) {
+            Telegraph::chat($this->chat_id())
+                ->message("Karta amal qilish muddati tugagan. Iltimos, to'g'ri amal qilish muddatini kiriting.")
+                ->send();
+            return;
+        }
+        $this->clearState($this->chat_id());
+        list($month, $year) = explode('/', $expire);
+        $state = $this->callCreateCard(Cache::get($this->chat_id()."card"), $month.$year,
+            User::where('chat_id', $this->chat_id())->first());
+        if (!$state) {
+            $this->askForCardDetails();
+        }
+    }
+
+    public function processVerificationCode(string $code): void
+    {
+        $user = User::where('chat_id', $this->chat_id())->first();
+        $state = $this->callVerifyCard($user, $code);
+        Cache::forget($this->chat_id()."card");
+        if ($state) {
+            $this->sendPlans();
+        }
+    }
+
+    public function askForExpireDate(): void
+    {
+        $this->setState($this->chat_id(), 'waiting_for_card_expire');
+        Telegraph::chat($this->chat_id())->message("💳Amal qilish muddatini yuboring (10/29): ")->send();
+    }
+
+    public function askForCardDetails(): void
+    {
+        $this->setState($this->chat_id(), 'waiting_for_card');
+        Telegraph::chat($this->chat_id())->message("💳Karta raqamini yuboring:")->send();
+    }
+
+    public function hasVerifiedCard(): bool
+    {
+        $user = User::where('chat_id', $this->chat_id())->first();
+        $card = Card::where('user_id', $user->id)->where('verified', true)->first();
+        return !empty($card);
     }
 }

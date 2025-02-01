@@ -2,19 +2,18 @@
 
 namespace App\Filament\Resources;
 
-use App\Filament\Resources\MessageResource\Pages;
-use App\Models\Message;
+use App\Filament\Resources\PlanResource\Pages;
+use App\Filament\Resources\PlanResource\RelationManagers;
+use App\Models\Plan;
 use Filament\Forms;
-use Filament\Forms\Components\RichEditor;
 use Filament\Forms\Form;
 use Filament\Resources\Resource;
 use Filament\Tables;
 use Filament\Tables\Table;
-use Illuminate\Database\Eloquent\Model;
 
-class MessageResource extends Resource
+class PlanResource extends Resource
 {
-    protected static ?string $model = Message::class;
+    protected static ?string $model = Plan::class;
 
     protected static ?string $navigationIcon = 'heroicon-o-rectangle-stack';
 
@@ -22,26 +21,13 @@ class MessageResource extends Resource
     {
         return $form
             ->schema([
-                RichEditor::make('message')
-                    ->toolbarButtons([
-                        'blockquote',
-                        'bold',
-                        'bulletList',
-                        'codeBlock',
-                        'h2',
-                        'h3',
-                        'italic',
-                        'link',
-                        'orderedList',
-                        'redo',
-                        'strike',
-                        'underline',
-                        'undo',
-                    ]),
-                Forms\Components\Toggle::make('sent')
+                Forms\Components\TextInput::make('name')
                     ->required()
-                    ->hidden()
-                    ->disabled(),
+                    ->maxLength(255),
+                Forms\Components\TextInput::make('price')
+                    ->required()
+                    ->numeric()
+                    ->suffix('Uzs'),
             ]);
     }
 
@@ -49,11 +35,11 @@ class MessageResource extends Resource
     {
         return $table
             ->columns([
-                Tables\Columns\TextColumn::make('message')
-                    ->limit(60),
-
-                Tables\Columns\IconColumn::make('sent')
-                    ->boolean(),
+                Tables\Columns\TextColumn::make('name')
+                    ->searchable(),
+                Tables\Columns\TextColumn::make('price')
+                    ->money()
+                    ->sortable(),
                 Tables\Columns\TextColumn::make('created_at')
                     ->dateTime()
                     ->sortable()
@@ -84,7 +70,7 @@ class MessageResource extends Resource
         ];
     }
 
-    public static function canEdit(Model $record): bool
+    public static function canCreate(): bool
     {
         return false;
     }
@@ -92,10 +78,10 @@ class MessageResource extends Resource
     public static function getPages(): array
     {
         return [
-            'index' => Pages\ListMessages::route('/'),
-            'create' => Pages\CreateMessage::route('/create'),
-            'view' => Pages\ViewMessage::route('/{record}'),
-            'edit' => Pages\EditMessage::route('/{record}/edit'),
+            'index' => Pages\ListPlans::route('/'),
+            'create' => Pages\CreatePlan::route('/create'),
+            'view' => Pages\ViewPlan::route('/{record}'),
+            'edit' => Pages\EditPlan::route('/{record}/edit'),
         ];
     }
 }

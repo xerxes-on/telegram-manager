@@ -49,16 +49,24 @@ class User extends Authenticatable
             'password' => 'hashed',
         ];
     }
+
     public function orders(): HasMany
     {
         return $this->hasMany(Order::class);
     }
+
     public function subscriptions(): HasMany
     {
         return $this->hasMany(Subscription::class);
     }
+
     public function cards(): HasMany
     {
         return $this->hasMany(Card::class);
+    }
+
+    public function hasActiveSubscription(): bool
+    {
+        return $this->subscriptions()->where('status', true)->exists();
     }
 }

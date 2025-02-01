@@ -14,11 +14,11 @@ return new class extends Migration
         Schema::create('cards', function (Blueprint $table) {
             $table->id();
             $table->foreignId('user_id')->constrained()->cascadeOnDelete();
-            $table->char('card_number', 16);
-            $table->integer('expire_date');
-            $table->boolean('is_international');
-            $table->integer('cvv')->nullable();
-            $table->string('card_type')->nullable();
+            $table->string('masked_number');
+            $table->longText('token');
+            $table->string('expire')->nullable();
+            $table->string('phone')->nullable();
+            $table->boolean('verified')->nullable();
             $table->timestamps();
         });
     }
