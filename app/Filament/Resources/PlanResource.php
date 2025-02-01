@@ -74,6 +74,10 @@ class PlanResource extends Resource
     {
         return false;
     }
+    public static function canDeleteAny(): bool
+    {
+        return false;
+    }
 
     public static function getPages(): array
     {
