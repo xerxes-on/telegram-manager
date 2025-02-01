@@ -38,7 +38,7 @@ class BroadcastMessageJob extends WebhookHandler implements ShouldQueue
     public function handle(Request $request, TelegraphBot $bot): void
     {
         Telegraph::chat($this->user->chat_id)
-            ->message($this->messageContent)
+            ->html($this->messageContent)
             ->send();
     }
 }

@@ -5,6 +5,7 @@ namespace App\Filament\Resources;
 use App\Filament\Resources\MessageResource\Pages;
 use App\Models\Message;
 use Filament\Forms;
+use Filament\Forms\Components\RichEditor;
 use Filament\Forms\Form;
 use Filament\Resources\Resource;
 use Filament\Tables;
@@ -21,8 +22,22 @@ class MessageResource extends Resource
     {
         return $form
             ->schema([
-                Forms\Components\TextInput::make('message')
-                    ->required(),
+                RichEditor::make('message')
+                    ->toolbarButtons([
+                        'blockquote',
+                        'bold',
+                        'bulletList',
+                        'codeBlock',
+                        'h2',
+                        'h3',
+                        'italic',
+                        'link',
+                        'orderedList',
+                        'redo',
+                        'strike',
+                        'underline',
+                        'undo',
+                    ]),
                 Forms\Components\Toggle::make('sent')
                     ->required()
                     ->hidden()
