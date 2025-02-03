@@ -8,6 +8,7 @@ use App\Models\User;
 use App\Telegram\Services\HandleChannel;
 use App\Telegram\Traits\CanAlterUsers;
 use App\Telegram\Traits\CanUsePayme;
+use App\Telegram\Traits\CanUsePayze;
 use App\Telegram\Traits\HandlesButtonActions;
 use App\Telegram\Traits\HasPlans;
 use DefStudio\Telegraph\Enums\ChatActions;
@@ -22,40 +23,73 @@ use Illuminate\Support\Stringable;
 
 class Handler extends WebhookHandler
 {
-    use CanAlterUsers, HasPlans, HandlesButtonActions, CanUsePayme;
+    use CanAlterUsers, HasPlans, HandlesButtonActions, CanUsePayme, CanUsePayze;
+
+    private int $chatId;
+    private ?User $user = null;
+
+    public function chat_id(): int
+    {
+        if (!isset($this->chatId)) {
+            $this->chatId = $this->chat->chat_id;
+        }
+        return $this->chatId;
+    }
+
+    private function getDefaultKeyboard(): ReplyKeyboard
+    {
+        return ReplyKeyboard::make()
+            ->row([
+                ReplyButton::make("💳 To'lov"),
+                ReplyButton::make("📋 Obuna holati"),
+            ])->chunk(2)
+            ->row([
+                ReplyButton::make('🆘 Yordam'),
+            ])->chunk(1)
+            ->resize();
+    }
+
+    /**
+     * Returns the User model for the current chat, caching the result.
+     */
+    private function getUserModel(): ?User
+    {
+        if ($this->user === null) {
+            $this->user = User::where('chat_id', $this->chat_id())->first();
+        }
+        return $this->user;
+    }
 
     public function start(): void
     {
-        Telegraph::chat($this->chat_id())
-            ->reactWithEmoji($this->request['message']['message_id'], '😇')->send();
+        $chatId = $this->chat_id();
+        $messageId = $this->request['message']['message_id'] ?? null;
 
-        Telegraph::chat($this->chat_id())
+        Telegraph::chat($chatId)
+            ->reactWithEmoji($messageId, '😇')
+            ->send();
+
+        Telegraph::chat($chatId)
             ->message(
                 "Assalomu aleykum! Yangi \"Anvar Abduqayum Full Contact\" loyihamizga xush kelibsiz!\n\n".
-                "Ushbu kanal uchun alohida vaqt ajratib zavq bilan ".
-                "yondashishga harakat qilaman!\n\n".
+                "Ushbu kanal uchun alohida vaqt ajratib zavq bilan yondashishga harakat qilaman!\n\n".
                 "Bu kanalda:\n".
                 "1. Faqat foydali content.\n".
                 "Oylik obuna 500 000 so'm."
             )
             ->send();
 
-        // Check if user is already registered
-        if ($this->isRegistered($this->chat_id())) {
-            $this->sendUserData($this->chat_id());
+        if ($this->isRegistered($chatId)) {
+            $this->sendUserData($chatId);
             $this->sendPlans();
         } else {
-            // If not registered, set state to request phone number
             $this->askForPhoneNumber();
         }
     }
 
-    public function chat_id(): int
-    {
-        return $this->chat->chat_id;
-    }
-
     /**
+     * Handle incoming chat messages.
+     *
      * @throws TelegraphException
      */
     public function handleChatMessage(Stringable $text): void
@@ -68,25 +102,24 @@ class Handler extends WebhookHandler
         $message = trim($text);
         Telegraph::chat($chatId)->chatAction(ChatActions::TYPING)->send();
 
-        switch ($message) {
-            case "💳 To'lov":
-                $this->hasVerifiedCard() ? $this->sendPlans() : $this->askForCardDetails();
-                return;
-
-            case '📋 Obuna holati':
-                $this->processSubscriptionStatusButton();
-                return;
-
-            case "🆘 Yordam":
-                $this->processSupportButton();
-                return;
+        if ($message === "💳 To'lov") {
+            $this->hasVerifiedCard() ? $this->sendPlans() : $this->askForCardDetails();
+            return;
+        }
+        if ($message === '📋 Obuna holati') {
+            $this->processSubscriptionStatusButton();
+            return;
+        }
+        if ($message === "🆘 Yordam") {
+            $this->processSupportButton();
+            return;
         }
 
+        // Handle messages based on current state
         switch ($state) {
             case 'waiting_for_phone':
                 $this->processPhoneNumber($chatId, $message);
                 return;
-
             case 'waiting_for_name':
                 $this->processUserName($chatId, $message, $data);
                 return;
@@ -99,20 +132,11 @@ class Handler extends WebhookHandler
             case 'waiting_for_verify':
                 $this->processVerificationCode($message);
                 return;
-
         }
-        $keyboard = ReplyKeyboard::make()
-            ->row([
-                ReplyButton::make("💳 To'lov"),
-                ReplyButton::make("📋 Obuna holati"),
-            ])->chunk(2)
-            ->row([
-                ReplyButton::make('🆘 Yordam'),
-            ])->chunk(1)
-            ->resize();
+
         Telegraph::chat($chatId)
             ->message("🤷‍ Kechirasiz, bu buyruqni tushunmadim.")
-            ->replyKeyboard($keyboard)
+            ->replyKeyboard($this->getDefaultKeyboard())
             ->send();
     }
 
@@ -120,38 +144,40 @@ class Handler extends WebhookHandler
     {
         $contact = $this->request['message']['contact'] ?? null;
         $name = $this->request['message']['from']['first_name'] ?? "Anonymous";
+        $messageId = $this->request['message']['message_id'] ?? null;
+
+        // If sent as a contact, use that phone number
         if ($contact) {
             $phoneNumber = $contact['phone_number'] ?? null;
             if ($phoneNumber && preg_match('/^\+?[0-9]{10,15}$/', $phoneNumber)) {
-                $this->setState($chatId, 'waiting_for_name', $phoneNumber);
-                Telegraph::chat($chatId)
-                    ->reactWithEmoji($this->request['message']['message_id'], '❤️')
-                    ->send();
-                Telegraph::chat($chatId)
-                    ->message("Telefon raqamingiz qabul qilindi! Endi ismingizni yuboring:")
-                    ->replyKeyboard(ReplyKeyboard::make()
-                        ->button($name)->resize())
-                    ->send();
+                $this->acceptPhoneNumber($chatId, $phoneNumber, $name, $messageId);
                 return;
             }
         }
 
+        // Or, if the text message itself is a phone number:
         if (preg_match('/^\+?[0-9]{10,13}$/', $message)) {
-
-            $this->setState($chatId, 'waiting_for_name', $message);
-            Telegraph::chat($chatId)
-                ->reactWithEmoji($this->request['message']['message_id'], '❤️')
-                ->send();
-            Telegraph::chat($chatId)
-                ->message("Telefon raqamingiz qabul qilindi! Endi ismingizni yuboring:")
-                ->replyKeyboard(ReplyKeyboard::make()
-                    ->button($name)->resize())
-                ->send();
+            $this->acceptPhoneNumber($chatId, $message, $name, $messageId);
         } else {
             Telegraph::chat($chatId)
-                ->message("Noto'g'ri telefon raqam. Iltimos, qayta urinib ko'ring yoki raqamни контакт орқали юборинг.")
+                ->message("Noto'g'ri telefon raqam. Iltimos, qayta urinib ko'ring yoki raqamni kontakt orqali yuboring.")
                 ->send();
         }
+    }
+
+    /**
+     * Handles a valid phone number by setting the state and prompting for the user’s name.
+     */
+    private function acceptPhoneNumber(int $chatId, string $phoneNumber, string $name, $messageId): void
+    {
+        $this->setState($chatId, 'waiting_for_name', $phoneNumber);
+        Telegraph::chat($chatId)
+            ->reactWithEmoji($messageId, '❤️')
+            ->send();
+        Telegraph::chat($chatId)
+            ->message("Telefon raqamingiz qabul qilindi! Endi ismingizni yuboring:")
+            ->replyKeyboard(ReplyKeyboard::make()->button($name)->resize())
+            ->send();
     }
 
     private function processUserName(int $chatId, string $message, string $phoneNumber): void
@@ -162,6 +188,7 @@ class Handler extends WebhookHandler
                 ->send();
             return;
         }
+
         $userId = $this->request['message']['from']['id'];
         User::create([
             'user_id' => $userId,
@@ -169,23 +196,17 @@ class Handler extends WebhookHandler
             'phone_number' => $phoneNumber,
             'name' => $message,
         ]);
+
+        $messageId = $this->request['message']['message_id'] ?? null;
         Telegraph::chat($chatId)
-            ->reactWithEmoji($this->request['message']['message_id'], '❤️')
+            ->reactWithEmoji($messageId, '❤️')
             ->send();
+
         $this->clearState($chatId);
 
-        $keyboard = ReplyKeyboard::make()
-            ->row([
-                ReplyButton::make("💳 To'lov"),
-                ReplyButton::make("📋 Obuna holati"),
-            ])->chunk(2)
-            ->row([
-                ReplyButton::make('🆘 Yordam'),
-            ])->chunk(1)
-            ->resize();
         Telegraph::chat($chatId)
             ->message("Rahmat, $message! Ma'lumotlaringiz saqlandi. 🎉")
-            ->replyKeyboard($keyboard)
+            ->replyKeyboard($this->getDefaultKeyboard())
             ->send();
 
         $this->sendPlans();
@@ -193,44 +214,65 @@ class Handler extends WebhookHandler
 
     public function savePlan(string $plan): void
     {
+        $chatId = $this->chat_id();
+
         if (!$this->hasVerifiedCard()) {
             $this->askForCardDetails();
             return;
         }
+
         $planModel = Plan::where('name', $plan)->first();
-        $user = User::where('chat_id', $this->chat_id())->first();
+        $user = $this->getUserModel();
 
         if (!$planModel || !$user) {
-            $id = $this->request['message']['id'];
-            if (!is_null($id)) {
-                Telegraph::chat($this->chat_id())
-                    ->deleteMessage($id);
+            $messageId = $this->request['message']['id'] ?? null;
+            if (!is_null($messageId)) {
+                Telegraph::chat($chatId)->deleteMessage($messageId);
             }
-            Telegraph::chat($this->chat_id())
+            Telegraph::chat($chatId)
                 ->message('Something went wrong: plan or user not found.')
                 ->send();
             return;
         }
-        $card = Card::where('user_id', $user->id)->where('verified', true)->latest()->first();
+
+        $card = Card::where('user_id', $user->id)
+            ->where('verified', true)
+            ->latest()
+            ->first();
+
         $keys = Keyboard::make()->buttons([
-            Button::make('✅Tasdiqlash')->action('pay')->param('plan_id', $planModel->id)->width(1),
+            Button::make('✅Tasdiqlash')->action('choose')->param('plan_id', $planModel->id)->width(1),
             Button::make("♻︎ Kartani o'zgartirish")->action('askForCardDetails')->width(0.8),
             Button::make("🧐Orqaga")->action('home')->width(0.2),
         ]);
-        Telegraph::chat($this->chat_id())
-            ->html("Obuna: ".$planModel->name."\nNarxi: ".$planModel->price / 100 ."\nKarta: ".$card->masked_number)
+
+        Telegraph::chat($chatId)
+            ->html("Obuna: ".$planModel->name."\nNarxi: ".($planModel->price / 100)."\nKarta: ".$card->masked_number)
             ->keyboard($keys)
             ->send();
     }
 
-
-    public function pay(string $plan_id): void
+    public function choose(string $plan_id): void
     {
-
+        $chatId = $this->chat_id();
         $plan = Plan::find($plan_id);
-        $user = User::where('chat_id', $this->chat_id())->first();
-        if ($user->hasActiveSubscription()) {
-            Telegraph::chat($this->chat_id())
+        $keys = Keyboard::make()->buttons([
+            Button::make('💳 Uzcard/Humo')->action('payPayme')->param('plan_id', $plan->id)->width(0.5),
+            Button::make("💳 Visa/MasterCard")->action('payPayze')->param('plan_id', $plan->id)->width(0.5),
+        ]);
+        Telegraph::chat($chatId)
+            ->html("Karta turini tanlang: ")
+            ->keyboard($keys)
+            ->send();
+    }
+
+    public function payPayme(string $plan_id): void
+    {
+        $chatId = $this->chat_id();
+        $plan = Plan::find($plan_id);
+        $user = $this->getUserModel();
+        if ($user && $user->hasActiveSubscription()) {
+            Telegraph::chat($chatId)
                 ->message("Sizda obuna allaqachon faol!")
                 ->send();
             return;
@@ -238,33 +280,36 @@ class Handler extends WebhookHandler
         $this->callRecurrentPay($plan, $user);
     }
 
-
+    public function payPayze(string $plan_id): void
+    {
+        $chatId = $this->chat_id();
+        $plan = Plan::find($plan_id);
+        $user = $this->getUserModel();
+        if ($user && $user->hasActiveSubscription()) {
+            Telegraph::chat($chatId)
+                ->message("Sizda obuna allaqachon faol!")
+                ->send();
+            return;
+        }
+        $this->createPayzeCard($user, $plan);
+    }
 
     protected function handleUnknownCommand(Stringable $text): void
     {
-        $keyboard = ReplyKeyboard::make()
-            ->row([
-                ReplyButton::make("💳 To'lov"),
-                ReplyButton::make("📋 Obuna holati"),
-            ])->chunk(2)
-            ->row([
-                ReplyButton::make('🆘 Yordam'),
-            ])->chunk(1)
-            ->resize();
         Telegraph::chat($this->chat_id())
             ->message("🤷‍ Kechirasiz, bu buyruqni tushunmadim.")
-            ->replyKeyboard($keyboard)
+            ->replyKeyboard($this->getDefaultKeyboard())
             ->send();
-
     }
+
     public function getStatus(): void
     {
-        if (!$this->isRegistered($this->chat_id())) {
+        $chatId = $this->chat_id();
+        if (!$this->isRegistered($chatId)) {
             $this->askForPhoneNumber();
         } else {
-            $handler = new HandleChannel($this->getUser($this->chat_id()));
+            $handler = new HandleChannel($this->getUserModel());
             $handler->getChannelUser();
         }
     }
-
 }

@@ -11,6 +11,7 @@ use App\Telegram\Traits\CanAlterUsers;
 use Carbon\Carbon;
 use DefStudio\Telegraph\Facades\Telegraph;
 use DefStudio\Telegraph\Handlers\WebhookHandler;
+use Illuminate\Support\Facades\Cache;
 
 class PaycomSubscriptionService extends WebhookHandler
 {
@@ -56,6 +57,7 @@ class PaycomSubscriptionService extends WebhookHandler
             return $this->cardsSendVerifyCode($cardDetails['token']);
         } else {
             $this->notify("Noma'lum karta");
+            Cache::forget($this->chat_id."card");
             return false;
         }
     }
@@ -132,6 +134,7 @@ class PaycomSubscriptionService extends WebhookHandler
             return true;
         }
         $this->notify('Karta topilmadi');
+        Cache::forget($this->chat_id."card");
         return false;
     }
 
