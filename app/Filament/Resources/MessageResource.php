@@ -5,7 +5,9 @@ namespace App\Filament\Resources;
 use App\Filament\Resources\MessageResource\Pages;
 use App\Models\Message;
 use Filament\Forms;
+use Filament\Forms\Components\MarkdownEditor;
 use Filament\Forms\Form;
+use Filament\Infolists\Components\TextEntry;
 use Filament\Resources\Resource;
 use Filament\Tables;
 use Filament\Tables\Table;
@@ -21,7 +23,7 @@ class MessageResource extends Resource
     {
         return $form
             ->schema([
-                Forms\Components\TextInput::make('message')
+                MarkdownEditor::make('message')
                     ->required(),
                 Forms\Components\Toggle::make('sent')
                     ->required()

@@ -12,6 +12,7 @@ use Illuminate\Foundation\Queue\Queueable;
 use Illuminate\Http\Request;
 use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Queue\SerializesModels;
+use Illuminate\Support\Facades\Http;
 
 class BroadcastMessageJob extends WebhookHandler implements ShouldQueue
 {
@@ -38,7 +39,7 @@ class BroadcastMessageJob extends WebhookHandler implements ShouldQueue
     public function handle(Request $request, TelegraphBot $bot): void
     {
         Telegraph::chat($this->user->chat_id)
-            ->html($this->messageContent)
+            ->markdownV2($this->messageContent)
             ->send();
     }
 }
