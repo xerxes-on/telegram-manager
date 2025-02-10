@@ -158,13 +158,13 @@ class PaycomSubscriptionService extends WebhookHandler
             ],
         ];
 
-        $response = $this->apiClient->sendRequest('receipts.create', $params);
+        $response = $this->apiClient->sendRequest('receipts.create', $params, true);
         if (!$response || !isset($response['receipt'])) {
             return;
         }
 
         $receiptId = $response['receipt']['_id'];
-        $this->createReceiptRecord($receiptId);
+        $this->createReceiptRecord($receiptId, $response['receipt']);
 
         $verifiedCard = $user->cards()->where('verified', true)->latest()->first();
         if ($verifiedCard) {
@@ -174,10 +174,11 @@ class PaycomSubscriptionService extends WebhookHandler
         }
     }
 
-    protected function createReceiptRecord(string $receiptId)
+    protected function createReceiptRecord(string $receiptId, array $meta)
     {
         return Receipt::create([
             'receipt_id' => $receiptId,
+            'metadata' => json_encode($meta)
         ]);
     }
 

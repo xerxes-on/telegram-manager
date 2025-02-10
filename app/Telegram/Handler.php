@@ -8,7 +8,6 @@ use App\Models\User;
 use App\Telegram\Services\HandleChannel;
 use App\Telegram\Traits\CanAlterUsers;
 use App\Telegram\Traits\CanUsePayme;
-use App\Telegram\Traits\CanUsePayze;
 use App\Telegram\Traits\HandlesButtonActions;
 use App\Telegram\Traits\HasPlans;
 use DefStudio\Telegraph\Enums\ChatActions;
@@ -23,7 +22,7 @@ use Illuminate\Support\Stringable;
 
 class Handler extends WebhookHandler
 {
-    use CanAlterUsers, HasPlans, HandlesButtonActions, CanUsePayme, CanUsePayze;
+    use CanAlterUsers, HasPlans, HandlesButtonActions, CanUsePayme;
 
     private int $chatId;
     private ?User $user = null;
@@ -258,7 +257,7 @@ class Handler extends WebhookHandler
         $plan = Plan::find($plan_id);
         $keys = Keyboard::make()->buttons([
             Button::make('💳 Uzcard/Humo')->action('payPayme')->param('plan_id', $plan->id)->width(0.5),
-            Button::make("💳 Visa/MasterCard")->action('payPayze')->param('plan_id', $plan->id)->width(0.5),
+//            Button::make("💳 Visa/MasterCard")->action('payPayze')->param('plan_id', $plan->id)->width(0.5),
         ]);
         Telegraph::chat($chatId)
             ->html("Karta turini tanlang: ")
@@ -280,19 +279,19 @@ class Handler extends WebhookHandler
         $this->callRecurrentPay($plan, $user);
     }
 
-    public function payPayze(string $plan_id): void
-    {
-        $chatId = $this->chat_id();
-        $plan = Plan::find($plan_id);
-        $user = $this->getUserModel();
-        if ($user && $user->hasActiveSubscription()) {
-            Telegraph::chat($chatId)
-                ->message("Sizda obuna allaqachon faol!")
-                ->send();
-            return;
-        }
-        $this->createPayzeCard($user, $plan);
-    }
+//    public function payPayze(string $plan_id): void
+//    {
+//        $chatId = $this->chat_id();
+//        $plan = Plan::find($plan_id);
+//        $user = $this->getUserModel();
+//        if ($user && $user->hasActiveSubscription()) {
+//            Telegraph::chat($chatId)
+//                ->message("Sizda obuna allaqachon faol!")
+//                ->send();
+//            return;
+//        }
+//        $this->createPayzeCard($user, $plan);
+//    }
 
     protected function handleUnknownCommand(Stringable $text): void
     {
