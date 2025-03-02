@@ -3,6 +3,7 @@
 namespace App\Telegram\Traits;
 
 use App\Models\Card;
+use App\Models\Plan;
 use App\Models\User;
 use DefStudio\Telegraph\Facades\Telegraph;
 use DefStudio\Telegraph\Keyboard\Button;

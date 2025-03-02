@@ -207,4 +207,8 @@ class PaycomSubscriptionService extends WebhookHandler
             'phone' => $phone,
         ]);
     }
+    public function createFreePlan(Plan $plan): void
+    {
+        $this->createSubscription($plan, 'this_is_a_free_plan');
+    }
 }

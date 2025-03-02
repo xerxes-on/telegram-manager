@@ -35,7 +35,7 @@ class Handler extends WebhookHandler
         return $this->chatId;
     }
 
-    private function getDefaultKeyboard(): ReplyKeyboard
+    public function getDefaultKeyboard(): ReplyKeyboard
     {
         return ReplyKeyboard::make()
             ->row([
@@ -240,7 +240,7 @@ class Handler extends WebhookHandler
             ->first();
 
         $keys = Keyboard::make()->buttons([
-            Button::make('✅Tasdiqlash')->action('choose')->param('plan_id', $planModel->id)->width(1),
+            Button::make('✅Tasdiqlash')->action('payPayme')->param('plan_id', $planModel->id)->width(1),
             Button::make("♻︎ Kartani o'zgartirish")->action('askForCardDetails')->width(0.8),
             Button::make("🧐Orqaga")->action('home')->width(0.2),
         ]);
@@ -251,19 +251,19 @@ class Handler extends WebhookHandler
             ->send();
     }
 
-    public function choose(string $plan_id): void
-    {
-        $chatId = $this->chat_id();
-        $plan = Plan::find($plan_id);
-        $keys = Keyboard::make()->buttons([
-            Button::make('💳 Uzcard/Humo')->action('payPayme')->param('plan_id', $plan->id)->width(0.5),
-//            Button::make("💳 Visa/MasterCard")->action('payPayze')->param('plan_id', $plan->id)->width(0.5),
-        ]);
-        Telegraph::chat($chatId)
-            ->html("Karta turini tanlang: ")
-            ->keyboard($keys)
-            ->send();
-    }
+//    public function choose(string $plan_id): void
+//    {
+////        $chatId = $this->chat_id();
+////        $plan = Plan::find($plan_id);
+////        $keys = Keyboard::make()->buttons([
+////            Button::make('💳 Uzcard/Humo')->action('payPayme')->param('plan_id', $plan->id)->width(0.5),
+//////            Button::make("💳 Visa/MasterCard")->action('payPayze')->param('plan_id', $plan->id)->width(0.5),
+////        ]);
+////        Telegraph::chat($chatId)
+////            ->html("Karta turini tanlang: ")
+////            ->keyboard($keys)
+////            ->send();
+//    }
 
     public function payPayme(string $plan_id): void
     {
@@ -276,7 +276,11 @@ class Handler extends WebhookHandler
                 ->send();
             return;
         }
-        $this->callRecurrentPay($plan, $user);
+        if ($plan->price === 0) {
+            $this->createFreePlan($plan, $user);
+        } else {
+            $this->callRecurrentPay($plan, $user);
+        }
     }
 
 //    public function payPayze(string $plan_id): void

@@ -26,12 +26,10 @@ class SendSubscriptionReminderJob implements ShouldQueue
      */
     public function handle(): void
     {
-        // Get the current date and calculate reminder dates
         $today = Carbon::now();
         $threeDaysBefore = $today->copy()->addDays(3)->toDateString();
-        $twelveDaysBefore = $today->copy()->addDays(12)->toDateString();
+        $twelveDaysBefore = $today->copy()->addWeek()->toDateString();
 
-        // Get users whose subscription is about to expire or has expired
         $users = User::whereDate('expire_date', $threeDaysBefore)
             ->orWhereDate('expire_date', $twelveDaysBefore)
             ->orWhere('expire_date', '<', $today->toDateString())
@@ -41,7 +39,6 @@ class SendSubscriptionReminderJob implements ShouldQueue
             $daysLeft = $user->subscription_expires_at->diffInDays($today);
 
             if ($daysLeft > 0) {
-                // Send reminder message if subscription is about to expire
                 $message = "Assalomu alaykum, {$user->name}!\n\n".
                     "Eslatma: Sizning obunangiz $daysLeft kundan keyin tugaydi.\n".
                     "Obunani yangilashni unutmang, xizmatlarimizdan uzluksiz foydalanishingiz uchun :)";
@@ -50,7 +47,6 @@ class SendSubscriptionReminderJob implements ShouldQueue
                     ->message($message)
                     ->send();
             } else {
-                // Kick user out of the channel if subscription has expired
                 $handleChannel = new HandleChannel($user);
                 $handleChannel->kickUser();
             }

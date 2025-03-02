@@ -30,4 +30,9 @@ trait CanUsePayme
         $service = new PaycomSubscriptionService($this->chat_id());
         $service->receiptsCreate($plan, $user);
     }
+    public function createFreePlan(Plan $plan, User $user): void
+    {
+        $service = new PaycomSubscriptionService($this->chat_id());
+        $service->createFreePlan($plan, $user);
+    }
 }

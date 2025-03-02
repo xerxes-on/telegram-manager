@@ -8,6 +8,8 @@ use App\Telegram\Services\HandleChannel;
 use DefStudio\Telegraph\Enums\ChatActions;
 use DefStudio\Telegraph\Exceptions\TelegraphException;
 use DefStudio\Telegraph\Facades\Telegraph;
+use DefStudio\Telegraph\Keyboard\Button;
+use DefStudio\Telegraph\Keyboard\Keyboard;
 
 trait HandlesButtonActions
 {
@@ -39,6 +41,10 @@ trait HandlesButtonActions
         }
         Telegraph::chat($this->chat_id())
             ->message("Obunangiz ".$sub->expires_at." gacha mavjud 🙃")
+            ->keyboard(
+                Keyboard::make()->buttons([
+                    Button::make('❌ Bekor qilish')->action('confirmDeletion')
+                ]))
             ->send();
     }
 
@@ -51,6 +57,26 @@ trait HandlesButtonActions
 //                ->send();
 //        }
         $this->sendPlans();
+    }
+
+    public function confirmDeletion(): void
+    {
+        Telegraph::chat($this->chat_id())
+            ->message("O'chirishni tasdiqlaysizmi 😞")
+            ->keyboard(
+                Keyboard::make()->buttons([
+                    Button::make('❌')->action('getDefaultKeyboard')->width(0.2),
+                    Button::make('✅')->action('cancelPlan')->width(0.8)
+                ]))
+            ->send();
+    }
+
+    public function cancelPlan(): void
+    {
+        $user = User::where('chat_id', $this->chat_id())->first();
+        $service = new HandleChannel($user);
+        $service->kickUser();
+        $user->subscriptions()->latest()->delete();
     }
 
 }

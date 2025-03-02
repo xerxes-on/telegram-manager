@@ -15,8 +15,8 @@ class HandleChannel
 
     public function __construct(User $user)
     {
-        $this->token = env('TELEGRAM_BOT_TOKEN');
-        $this->channelId = env('CHANNEL_ID');
+        $this->token = env('TELEGRAM_BOT_TOKEN','null');
+        $this->channelId = env('CHANNEL_ID','null');
         $this->user = $user;
     }
 
@@ -83,7 +83,7 @@ class HandleChannel
             ]);
 
             if ($unbanResponse->ok() && ($unbanResponse->json()['ok'] ?? false)) {
-                $sticker = "CAACAgIAAxkBAAExQ3JnmzHSzshIUs2brFvaukLwJ3otPAACjg4AAjQCWEhEXiZTgoIOajYE";
+                $sticker = "CAACAgIAAxkBAAEyQ1lnxCUfHvU7WgYiZc-xdnqTrlYmvgAC8wADVp29Cmob68TH-pb-NgQ";
                 Telegraph::chat($this->user->chat_id)->sticker($sticker)->send();
 
                 Telegraph::chat($this->user->chat_id)
