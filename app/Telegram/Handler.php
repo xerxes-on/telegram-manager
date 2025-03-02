@@ -290,7 +290,7 @@ class Handler extends WebhookHandler
 //                ->send();
 //            return;
 //        }
-//        $this->createPayzeCard($user, $plan);
+//        $this->sendPayzePaymentLink($user, $plan, 'USD');
 //    }
 
     protected function handleUnknownCommand(Stringable $text): void

@@ -1,1 +1,0 @@
-{"state":"waiting_for_phone","data":""}
