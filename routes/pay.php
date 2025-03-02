@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\PaymeController;
+use App\Http\Controllers\PayzeCallbackController;
 use App\Models\Order;
 use App\Models\User;
 use Illuminate\Foundation\Http\Middleware\VerifyCsrfToken;
@@ -20,3 +21,6 @@ Route::get('/process-payment/{chatId}/{orderId}', function ($chatId, $orderId) {
     $amount = $order->plan->price;
     return view('paymentPage', compact('orderId', 'amount'));
 })->name('process.payment');
+
+Route::post('/payze/gateway/success', [PayzeCallbackController::class, 'success']);
+Route::post('/payze/gateway/error', [PayzeCallbackController::class, 'error']);

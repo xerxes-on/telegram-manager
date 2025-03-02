@@ -1,6 +1,6 @@
 <?php
 // app/Telegram/Services/PaycomApiClient.php
-namespace App\Telegram\Services;
+namespace App\Telegram\Services\ApiClients;
 
 use Exception;
 use Illuminate\Support\Facades\Http;
@@ -55,14 +55,13 @@ class PaycomApiClient
             $data = $response->json();
 
             if (isset($data['error'])) {
-                call_user_func($this->notify, $data['error']['message']);
+                \Log::warning($data['error']['message']);
             }
 
             if (isset($data['result'])) {
                 return $data['result'];
             }
 
-            call_user_func($this->notify, 'Unexpected error from Payme API');
         } catch (Exception $e) {
             call_user_func($this->notify, 'Error communicating with Payme API: '.$e->getMessage());
         }

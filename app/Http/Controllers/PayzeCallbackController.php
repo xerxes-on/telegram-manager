@@ -8,16 +8,22 @@ use Illuminate\Http\Request;
 
 class PayzeCallbackController extends Controller
 {
-    public function handleCallback(Request $request, PayzePaymentService $payzeService): JsonResponse
+    public function success(Request $request, PayzePaymentService $payzeService): JsonResponse
     {
-        // Validate or parse the payload
         $payload = $request->all();
-        // You might want to verify signatures, check IP, etc.
+        \Log::debug($payload);
 
-        // Pass to the service
-        $payzeService->handlePayzeCallback($payload);
+//        $payzeService->handlePayzeCallback($payload);
 
-        // Respond with HTTP 200 to acknowledge
+        return response()->json(['status' => 'ok'], 200);
+    }
+    public function error(Request $request, PayzePaymentService $payzeService): JsonResponse
+    {
+        $payload = $request->all();
+        \Log::debug($payload);
+
+//        $payzeService->handlePayzeCallback($payload);
+
         return response()->json(['status' => 'ok'], 200);
     }
 }
