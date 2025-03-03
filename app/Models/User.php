@@ -57,6 +57,13 @@ class User extends Authenticatable
             ->where('expires_at', '>', now()->addDay()->format('Y-m-d'))
             ->exists();
     }
+    public function hasUsedFreePlan(): bool
+    {
+        $free_plan_id = Plan::where('price', 0)->first()->id;
+        return $this->subscriptions()
+            ->where('plan_id', $free_plan_id)
+            ->exists();
+    }
 
     public function subscriptions(): HasMany
     {

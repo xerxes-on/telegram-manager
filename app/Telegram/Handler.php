@@ -238,7 +238,13 @@ class Handler extends WebhookHandler
             ->where('verified', true)
             ->latest()
             ->first();
-
+        if($user->hasUsedFreePlan()){
+            Telegraph::chat($chatId)
+                ->message('Siz Tekin obunadan allqachon foydalangansiz 🙃')
+                ->send();
+            $this->sendPlans();
+            return;
+        }
         $keys = Keyboard::make()->buttons([
             Button::make('✅Tasdiqlash')->action('payPayme')->param('plan_id', $planModel->id)->width(1),
             Button::make("♻︎ Kartani o'zgartirish")->action('askForCardDetails')->width(0.8),
