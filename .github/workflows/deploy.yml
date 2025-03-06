@@ -47,11 +47,18 @@ jobs:
           password: ${{ secrets.FTP_PASSWORD }}
           local-dir: ./
           server-dir: ${{ secrets.SERVER_DIR }}
+          timeout: 120000
+          max-connections: 1
+          dangerous-clean-slate: false
+          log-level: verbose
           exclude: |
             **/.git*
             **/.git*/**
             **/node_modules/**
+            **/.ddev/**
             .env.example
+            vendor/**
+            .github/**
       
       - name: Run post-deployment commands via SSH
         uses: appleboy/ssh-action@v1.2.1
