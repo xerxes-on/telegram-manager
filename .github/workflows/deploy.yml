@@ -8,7 +8,7 @@ on:
 jobs:
   build-and-deploy:
     runs-on: ubuntu-latest
-    
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v3
@@ -18,27 +18,27 @@ jobs:
         with:
           php-version: '8.2'
           extensions: mbstring, bcmath, pdo, pdo_mysql
-      
+
       - name: Install Composer dependencies
         run: composer install --no-dev --optimize-autoloader --no-interaction
-      
+
       - name: Setup Node.js
         uses: actions/setup-node@v3
         with:
           node-version: '18'
-          
+
       - name: Install NPM dependencies
         run: npm ci
-      
+
       - name: Build assets
         run: npm run build
-      
+
       - name: Prepare for deployment
         run: |
           # Remove files not needed in production
           rm -rf node_modules
           rm -rf tests
-          
+
       - name: Deploy to cPanel
         uses: SamKirkland/FTP-Deploy-Action@v4.3.4
         with:
@@ -46,31 +46,26 @@ jobs:
           username: ${{ secrets.FTP_USERNAME }}
           password: ${{ secrets.FTP_PASSWORD }}
           local-dir: ./
-          server-dir: ${{ secrets.SERVER_DIR }}
-          timeout: 120000
-          max-connections: 1
-          dangerous-clean-slate: false
-          log-level: verbose
+          server-dir: ./
           exclude: |
             **/.git*
             **/.git*/**
-            **/node_modules/**
-            **/.ddev/**
+             **/vendor/*/**
+             **/storage/*/**
             .env.example
-            vendor/**
-            .github/**
-      
+
       - name: Run post-deployment commands via SSH
         uses: appleboy/ssh-action@v1.2.1
         with:
           host: ${{ secrets.SSH_HOST }}
           username: ${{ secrets.SSH_USERNAME }}
           passphrase: ${{ secrets.SSH_KEY_PASSPHRASE }}
-          key: ${{ secrets.KEY }}
           port: ${{ secrets.SSH_PORT }}
           script: |
-            cd ${{ secrets.SERVER_DIR }}
+            cd public_html
+            composer i --no-dev --optimize-autoloader --no-interaction
             php artisan migrate --force
+            php artisan storage:link
             php artisan optimize
             php artisan cache:clear
             php artisan config:cache
