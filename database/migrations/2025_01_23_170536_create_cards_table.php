@@ -13,13 +13,15 @@ return new class extends Migration
     {
         Schema::create('cards', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('user_id')->constrained()->cascadeOnDelete();
+            $table->foreignId('client_id')->constrained()->cascadeOnDelete();
             $table->string('masked_number');
             $table->longText('token');
             $table->string('expire')->nullable();
             $table->string('phone')->nullable();
             $table->boolean('verified')->nullable();
             $table->timestamps();
+            $table->index(['verified']);
+
         });
     }
 

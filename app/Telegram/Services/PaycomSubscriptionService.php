@@ -2,15 +2,15 @@
 // app/Telegram/Services/PaycomSubscriptionService.php
 namespace App\Telegram\Services;
 
+use App\Enums\ConversationStates;
 use App\Models\Card;
+use App\Models\Client;
+use App\Models\Order;
 use App\Models\Plan;
 use App\Models\Receipt;
-use App\Models\Subscription;
-use App\Models\User;
 use App\Telegram\Services\ApiClients\PaycomApiClient;
 use App\Telegram\Traits\CanAlterUsers;
 use App\Telegram\Traits\CanCreateSubscription;
-use Carbon\Carbon;
 use DefStudio\Telegraph\Facades\Telegraph;
 use DefStudio\Telegraph\Handlers\WebhookHandler;
 use Illuminate\Support\Facades\Cache;
@@ -19,19 +19,17 @@ class PaycomSubscriptionService extends WebhookHandler
 {
     use CanAlterUsers, CanCreateSubscription;
 
-    protected string $admin_chat_id;
     protected string $chat_id;
     protected PaycomApiClient $apiClient;
-    protected string $apiUrl = 'https://checkout.test.paycom.uz/api';
 
     public function __construct($chat_id)
     {
         parent::__construct();
         $this->chat_id = $chat_id;
         $this->apiClient = new PaycomApiClient(
-            $this->apiUrl,
-            env('PAYME_API_ID'),
-            env('PAYME_API_KEY'),
+            config('services.paycom.url'),
+            config('services.paycom.id'),
+            config('services.paycom.key'),
             function ($message) {
                 $this->notify($message);
             }
@@ -43,7 +41,7 @@ class PaycomSubscriptionService extends WebhookHandler
         Telegraph::chat($this->chat_id)->html($message)->send();
     }
 
-    public function cardsCreate(string $card, string $expire, User $user): bool
+    public function cardsCreate(string $card, string $expire, Client $client): bool
     {
         $response = $this->apiClient->sendRequest('cards.create', [
             'card' => [
@@ -55,77 +53,73 @@ class PaycomSubscriptionService extends WebhookHandler
 
         if (isset($response['card'])) {
             $cardDetails = $response['card'];
-            $this->createCardRecord($user, $cardDetails);
-            return $this->cardsSendVerifyCode($cardDetails['token']);
+            $this->createCardRecord($client, $cardDetails);
+            return $this->cardsSendVerifyCode($client, $cardDetails['token']);
         } else {
-            $this->notify("Noma'lum karta");
-            Cache::forget($this->chat_id."card");
+            Cache::forget($this->chat_id . "card");
             return false;
         }
     }
 
-    protected function createCardRecord(User $user, array $cardDetails): Card
+    protected function createCardRecord(Client $client, array $cardDetails): Card
     {
-        return Card::create([
-            'user_id' => $user->id,
+        return Card::query()->create([
+            'client_id' => $client->id,
             'token' => $cardDetails['token'],
             'masked_number' => $cardDetails['number'],
             'expire' => $cardDetails['expire'],
-            'phone' => $user->phone_number,
+            'phone' => $client->phone_number,
             'verified' => $cardDetails['verify'],
         ]);
     }
 
-    public function cardsSendVerifyCode(string $token): bool
+    public function cardsSendVerifyCode(Client $client, string $token): bool
     {
         $response = $this->apiClient->sendRequest('cards.get_verify_code', [
             'token' => $token,
         ], true);
 
         if ($response && isset($response['sent']) && $response['sent']) {
-            $this->setState($this->chat_id, 'waiting_for_verify');
-            $message = "📲Kod +".$response['phone']." raqamingizga yuborildi!\nKodni kiriting:";
+            $this->setState($client, ConversationStates::waiting_card_verify);
+            $message = __('telegram.verification_code_sent', ['phone' => $response['phone']]);
             $this->notify($message);
             return true;
         } else {
-            $this->notify("📲Kod jo'natish o'xshamadi");
+            $this->notify(__('telegram.verification_code_send_failed'));
             return false;
         }
     }
 
-    public function verifyCard(string $token, int|string $code): bool
+    public function verifyCard(Card $card, int|string $code): bool
     {
         $response = $this->apiClient->sendRequest('cards.verify', [
-            'token' => $token,
+            'token' => $card->token,
             'code' => $code,
         ], true);
 
         if (!$response) {
-            $this->notify("Notog'ri kod Iltimos yana harakat qilib koring.");
+            $this->notify(__('telegram.incorrect_code'));
             return false;
         }
 
         $cardData = $response['card'] ?? null;
         if (!$cardData) {
-            $this->notify("Unexpected response during card verification.");
+            $this->notify(__('telegram.card_verification_unexpected_response'));
             return false;
         }
+        $card->update([
+            'verified' => $cardData['verify'],
+        ]);
 
-        $card = Card::where('token', $token)->first();
-        if ($card) {
-            $card->update([
-                'verified' => $cardData['verify'],
-            ]);
-        }
-        $this->notify("Kartangiz Payme tomonidan tasdiqlandi.");
+        $this->notify(__('telegram.card_verified'));
         return true;
     }
 
-    public function cardCheck(User $user): bool
+    public function cardCheck(Client $client): bool
     {
-        $card = $user->cards()->first();
+        $card = $client->cards()->first();
         if (!$card) {
-            $this->notify('Karta topilmadi');
+            $this->notify(__('telegram.card_not_found'));
             return false;
         }
         $response = $this->apiClient->sendRequest('cards.check', [
@@ -135,27 +129,27 @@ class PaycomSubscriptionService extends WebhookHandler
         if (isset($response['card']) && $response['card']['verify']) {
             return true;
         }
-        $this->notify('Karta topilmadi');
-        Cache::forget($this->chat_id."card");
+        $this->notify(__('telegram.card_not_found'));
+        Cache::forget($this->chat_id . "card");
         return false;
     }
 
-    public function receiptsCreate(Plan $plan, User $user): void
+    public function receiptsCreate(Plan $plan, Client $client, Order $order): void
     {
         $params = [
             'amount' => $plan->price,
             'account' => [
-                'phone_number' => $user->phone_number,
+                'order_id' => $order->id,
             ],
             'detail' => [
                 'receipt_type' => 0,
                 'items' => [
-                    'title' => "Telegram channel subscription-".$plan->name,
+                    'title' => "Telegram channel subscription-" . $plan->name,
                     'price' => $plan->price,
                     'count' => 1,
                     'code' => "10306013001000000", // from Soliq
                     'package_code' => "package_code",// from Soliq
-                    'vat_percent' => 4,
+                    'vat_percent' => 0,
                 ],
             ],
         ];
@@ -168,23 +162,23 @@ class PaycomSubscriptionService extends WebhookHandler
         $receiptId = $response['receipt']['_id'];
         $this->createReceiptRecord($receiptId, $response['receipt']);
 
-        $verifiedCard = $user->cards()->where('verified', true)->latest()->first();
+        $verifiedCard = $client->cards()->where('verified', true)->latest()->first();
         if ($verifiedCard) {
-            $this->receiptsPay($receiptId, $verifiedCard->token, $plan);
+            $this->receiptsPay($receiptId, $verifiedCard->token, $order);
         } else {
-            $this->notify("No verified card found for payment.");
+            $this->notify(__('telegram.no_verified_card'));
         }
     }
 
     protected function createReceiptRecord(string $receiptId, array $meta)
     {
-        return Receipt::create([
+        return Receipt::query()->create([
             'receipt_id' => $receiptId,
             'metadata' => json_encode($meta)
         ]);
     }
 
-    public function receiptsPay(string $receiptId, string $token, Plan $plan): void
+    public function receiptsPay(string $receiptId, string $token, Order $order): void
     {
         $response = $this->apiClient->sendRequest('receipts.pay', [
             'id' => $receiptId,
@@ -192,23 +186,24 @@ class PaycomSubscriptionService extends WebhookHandler
         ]);
 
         if (isset($response['receipt']) && $response['receipt']['state'] == 4) {
-            $this->createSubscription($plan, $receiptId);
-            $this->receiptsSend($receiptId);
+            $this->createSubscription($order->client, $order->plan, $receiptId);
+            $this->receiptsSend($order->client, $receiptId);
         } else {
-            $this->notify("To'lov amalga oshmadi");
+            $this->notify(__('telegram.payment_failed'));
         }
     }
-    public function receiptsSend(string $receiptId): void
+
+    public function receiptsSend(Client $client, string $receiptId): void
     {
-        $user = User::where('chat_id', $this->chat_id)->first();
-        $phone = substr($user->phone_number, 1);
+        $phone = substr($client->phone_number, 1);
         $this->apiClient->sendRequest('receipts.send', [
             'id' => $receiptId,
             'phone' => $phone,
         ]);
     }
-    public function createFreePlan(Plan $plan): void
+
+    public function createFreePlan(Client $client, Plan $plan): void
     {
-        $this->createSubscription($plan, 'this_is_a_free_plan');
+        $this->createSubscription($client, $plan, 'this_is_a_free_plan');
     }
 }

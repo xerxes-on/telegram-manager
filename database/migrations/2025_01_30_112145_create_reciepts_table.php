@@ -13,7 +13,7 @@ return new class extends Migration
     {
         Schema::create('receipts', function (Blueprint $table) {
             $table->id();
-            $table->unsignedInteger('user_id')->nullable();
+            $table->unsignedInteger('client_id')->nullable();
             $table->string('receipt_id')->unique();
             $table->longText('metadata')->nullable();
             $table->timestamps();

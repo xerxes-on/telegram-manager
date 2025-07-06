@@ -13,8 +13,10 @@ return new class extends Migration
     {
         Schema::create('messages', function (Blueprint $table) {
             $table->id();
-            $table->longText('message');
+            $table->longText('message')->nullable();
             $table->boolean('sent')->default(0);
+            $table->string('attachment')->nullable();
+            $table->boolean('has_attachment')->default(false);
             $table->timestamps();
         });
     }

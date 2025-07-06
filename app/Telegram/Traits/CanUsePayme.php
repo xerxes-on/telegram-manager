@@ -3,36 +3,47 @@
 namespace App\Telegram\Traits;
 
 use App\Models\Card;
+use App\Models\Client;
+use App\Models\Order;
 use App\Models\Plan;
-use App\Models\User;
 use App\Telegram\Services\PaycomSubscriptionService;
 
 trait CanUsePayme
 {
-    public function callCreateCard(string $card, string $expire, User $user): bool
+    public function callCreateCard(string $card, string $expire, Client $client): bool
     {
-        $service = new PaycomSubscriptionService($this->chat_id());
-        return $service->cardsCreate($card, $expire, $user);
+        $service = new PaycomSubscriptionService($this->chat->chat_id);
+        return $service->cardsCreate($card, $expire, $client);
     }
 
-    public function callVerifyCard(User $user, string $code): bool
+    public function callVerifyCard(Client $client, string $code, Card $card): bool
     {
-        $card = Card::where('user_id', $user->id)->where('verified', false)->latest()->first();
-        if (!$card) {
-            return false;
+        $service = new PaycomSubscriptionService($this->chat->chat_id);
+        return $service->verifyCard($card, $code);
+    }
+
+    public function callRecurrentPay(Client $client, Plan $plan): void
+    {
+        $service = new PaycomSubscriptionService($this->chat->chat_id);
+        $order = Order::query()->where('client_id', $client->id)
+                                ->where('plan_id', $plan->id)
+                                ->where('price', $plan->price)
+                                ->first();
+
+        if (!$order) {
+            $order = Order::query()->create([
+                'client_id' => $client->id,
+                'plan_id' => $plan->id,
+                'price' => $plan->price,
+                'status' => 'created',
+            ]);
         }
-        $service = new PaycomSubscriptionService($this->chat_id());
-        return $service->verifyCard($card->token, $code);
+        $service->receiptsCreate($plan, $client, $order);
     }
 
-    public function callRecurrentPay(Plan $plan, User $user): void
+    public function createFreePlan(Client $client, Plan $plan): void
     {
-        $service = new PaycomSubscriptionService($this->chat_id());
-        $service->receiptsCreate($plan, $user);
-    }
-    public function createFreePlan(Plan $plan, User $user): void
-    {
-        $service = new PaycomSubscriptionService($this->chat_id());
-        $service->createFreePlan($plan, $user);
+        $service = new PaycomSubscriptionService($this->chat->chat_id);
+        $service->createFreePlan($client, $plan);
     }
 }

@@ -16,8 +16,10 @@ return new class extends Migration
             $table->integer('price');
             $table->foreignId('plan_id')->constrained()->cascadeOnDelete();
             $table->string('status');
-            $table->foreignId('user_id')->constrained()->cascadeOnDelete();
+            $table->foreignId('client_id')->constrained()->cascadeOnDelete();
             $table->timestamps();
+            $table->index(['price', 'status']);
+
         });
     }
 

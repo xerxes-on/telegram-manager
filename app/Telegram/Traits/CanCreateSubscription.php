@@ -2,18 +2,17 @@
 
 namespace App\Telegram\Traits;
 
+use App\Models\Client;
 use App\Models\Plan;
 use App\Models\Subscription;
-use App\Models\User;
 use App\Telegram\Services\HandleChannel;
 use Carbon\Carbon;
 use DefStudio\Telegraph\Facades\Telegraph;
 
 trait CanCreateSubscription
 {
-    private function createSubscription(Plan $plan, string $receiptId): void
+    private function createSubscription(Client $client, Plan $plan, string $receiptId): void
     {
-        $user = User::where('chat_id', $this->chat_id)->first();
         $planTitle = $plan->name;
         $expires = match (true) {
             str_contains($planTitle, 'one-month') => Carbon::now()->addMonth(),
@@ -22,9 +21,9 @@ trait CanCreateSubscription
             str_contains($planTitle, 'one-year') => Carbon::now()->addYear(),
             default => Carbon::now()->addWeek()
         };
-        $user->subscriptions()->where('status', true)->latest()?->first()?->deactivate();
-        Subscription::create([
-            'user_id' => $user->id,
+        $client->subscriptions()->where('status', true)->latest()?->first()?->deactivate();
+        Subscription::query()->create([
+            'client_id' => $client->id,
             'receipt_id' => $receiptId,
             'amount' => $plan->price,
             'expires_at' => $expires,
@@ -32,21 +31,23 @@ trait CanCreateSubscription
             'plan_id' => $plan->id
         ]);
 
-        $this->chat_id = $user->chat_id;
-        $this->admin_chat_id = intval(env("ADMIN_CHAT_ID"));
-        Telegraph::chat($this->chat_id)
+        Telegraph::chat($client->chat_id)
             ->sticker("CAACAgIAAxkBAAExKjRnl0Nr7-7-U-Ita4YDc764z65TRwACiQADFkJrCkbL2losgrCONgQ")
             ->send();
 
-        Telegraph::chat($this->chat_id)
-            ->message("To'g'ri tanlov! \nObuna: ".$expires->format('Y-m-d')." gacha 😇")
+        Telegraph::chat($client->chat_id)
+            ->message(__('telegram.subscription_success', ['date' => $expires->format('Y-m-d')]))
             ->send();
 
-        $handler = new HandleChannel($this->getUser($this->chat_id));
+        $handler = new HandleChannel($client);
         $handler->generateInviteLink();
 
-        Telegraph::chat($this->admin_chat_id)
-            ->message("Yangi obuna yaratildi 🎉.\nIsm: ".$user->name." \nTel raqam: ".$user->phone_number."\nObuna: ".$plan->name)
+        Telegraph::chat(intval(env("ADMIN_CHAT_ID")))
+            ->message(__('telegram.new_subscription_admin_notification', [
+                'first_name' => $client->first_name,
+                'phone_number' => $client->phone_number,
+                'plan_name' => $plan->name,
+            ]))
             ->send();
     }
 

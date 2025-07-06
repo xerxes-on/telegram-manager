@@ -2,10 +2,24 @@
 
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Support\Carbon;
 
+/**
+ * App\Models\Plan
+ *
+ * @property int $id
+ * @property string $name
+ * @property int $price
+ * @property Carbon $created_at
+ * @property Carbon $updated_at
+ *
+ * @property Collection|Subscription[] $subscriptions
+ * @property Collection|Order[] $orders
+ */
 class Plan extends Model
 {
     use HasFactory;
@@ -32,5 +46,10 @@ class Plan extends Model
     public function subscriptions(): HasMany
     {
         return $this->hasMany(Subscription::class);
+    }
+
+    public function orders(): HasMany
+    {
+        return $this->hasMany(Order::class);
     }
 }

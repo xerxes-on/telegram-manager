@@ -99,42 +99,26 @@ class PaymeController extends Controller
      */
     private function dispatchMethod(string $method, array $params): array
     {
-        switch ($method) {
-            case 'CheckPerformTransaction':
-                return $this->paymeService->checkPerformTransaction($params);
-
-            case 'CreateTransaction':
-                return $this->paymeService->createTransaction($params);
-
-            case 'CheckTransaction':
-                return $this->paymeService->checkTransaction($params);
-
-            case 'PerformTransaction':
-                return $this->paymeService->performTransaction($params);
-
-//            case 'CancelTransaction':
-//                return $this->paymeService->cancelTransaction($params);
-
-            case 'GetStatement':
-                return $this->paymeService->getStatement($params);
-
-            case 'ChangePassword':
-                return $this->paymeService->changePassword();
-
-            default:
-                return $this->error(-32601, 'Method not found.');
-        }
+        return match ($method) {
+            'CheckPerformTransaction' => $this->paymeService->checkPerformTransaction($params),
+            'CreateTransaction' => $this->paymeService->createTransaction($params),
+            'CheckTransaction' => $this->paymeService->checkTransaction($params),
+            'PerformTransaction' => $this->paymeService->performTransaction($params),
+            'GetStatement' => $this->paymeService->getStatement($params),
+            'ChangePassword' => $this->paymeService->changePassword(),
+            default => $this->error(-32601),
+        };
     }
 
     /**
      * Helper to format service errors.
      */
-    private function error(int $code, $message): array
+    private function error(int $code): array
     {
         return [
             'error' => [
                 'code' => $code,
-                'message' => $message,
+                'message' => 'Method not found.',
             ],
         ];
     }

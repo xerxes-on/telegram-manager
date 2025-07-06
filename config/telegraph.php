@@ -16,8 +16,6 @@ return [
      */
     'default_parse_mode' => Telegraph::PARSE_MARKDOWN ,
     'commands' => [
-        'start' => \App\Telegram\Handler::class . '@start',
-        'cancel' => \App\Telegram\Handler::class . '@search',
     ],
     /*
      * Sets the handler to be used when Telegraph
@@ -94,7 +92,7 @@ return [
                  * Laravel Storage disk to use. See /config/filesystems/disks for available disks
                  * If 'null', Laravel default store will be used,
                  */
-                'disk' => 'local',
+                'disk' => 'public',
 
                 /**
                  * Folder inside filesystem to be used as root for Telegraph storage

@@ -16,7 +16,7 @@ class PlanSeeder extends Seeder
         DB::table('plans')->insert([
             [
                 'name' => 'one-week-free',
-                'price' => 50000,
+                'price' => 0,
                 'created_at' => now(),
                 'updated_at' => now(),
             ],
