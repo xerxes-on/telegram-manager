@@ -6,6 +6,7 @@ use App\Enums\ConversationStates;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Support\Carbon;
 
 /**
@@ -53,16 +54,26 @@ class Client extends Model
     {
         return $this->hasMany(Receipt::class);
     }
+    public function mainCard(): HasOne
+    {
+        return $this->hasOne(Card::class)->where('is_main', true);
+    }
+
+    public function setMainCard(Card $newMainCard): void
+    {
+        $this->cards()->where('id', '!=', $newMainCard->id)->update(['is_main' => false]);
+        $newMainCard->update(['is_main' => true]);
+    }
     public function hasUsedFreePlan(): bool
     {
-        $free_plan_id = Plan::where('price', 0)->first()->id;
+        $free_plan_id = Plan::query()->where('price', 0)->first()->id;
         return $this->subscriptions()
             ->where('plan_id', $free_plan_id)
             ->exists();
     }
     public function hasActiveSubscription(): bool
     {
-        $free_plan_id = Plan::where('price', 0)->first()->id;
+        $free_plan_id = Plan::query()->where('price', 0)->first()->id;
         return $this->subscriptions()
             ->where('status', true)
             ->where('plan_id', '!=', $free_plan_id)

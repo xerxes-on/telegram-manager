@@ -19,6 +19,7 @@ return new class extends Migration
             $table->string('expire')->nullable();
             $table->string('phone')->nullable();
             $table->boolean('verified')->nullable();
+            $table->boolean('is_main')->default(false);
             $table->timestamps();
             $table->index(['verified']);
 

@@ -16,6 +16,7 @@ use Illuminate\Support\Carbon;
  * @property string|null $expire
  * @property string|null $phone
  * @property bool|null $verified
+ * @property bool $is_main
  * @property Carbon $created_at
  * @property Carbon $updated_at
  *

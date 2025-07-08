@@ -62,6 +62,7 @@ return [
     'eng' => '🇺🇸 English',
     'ru' => '🇷🇺 Русский',
     'uz' => '🇺🇿 O\'zbekcha',
+    'my_card_button' => '💳 My Card',
 
     // Payme service messages
     'order_not_found' => 'Order not found',
@@ -90,4 +91,6 @@ return [
         'sent' => 'Sent',
         'failed' => 'Failed',
     ],
+    'choose_main_card' => 'Choose a card to make it main',
+    'card_set_main_success' => 'Card :card is set as main successfully!',
 ]; 

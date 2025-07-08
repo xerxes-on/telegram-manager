@@ -6,6 +6,7 @@ use App\Enums\ConversationStates;
 use App\Models\Client;
 use App\Models\Plan;
 use App\Telegram\Traits\CanAlterUsers;
+use App\Telegram\Traits\CanHandleCards;
 use App\Telegram\Traits\CanUsePayme;
 use App\Telegram\Traits\HandlesButtonActions;
 use App\Telegram\Traits\HasPlans;
@@ -20,7 +21,7 @@ use JetBrains\PhpStorm\NoReturn;
 
 class Handler extends WebhookHandler
 {
-    use CanAlterUsers, HasPlans, HandlesButtonActions, CanUsePayme;
+    use CanAlterUsers, HasPlans, HandlesButtonActions, CanUsePayme, CanHandleCards;
 
     public Client $client;
 
@@ -76,6 +77,7 @@ class Handler extends WebhookHandler
             __('telegram.subscription_status_button') => $this->processSubscriptionStatusButton(),
             __('telegram.help_button') => $this->processSupportButton(),
             __('telegram.change_language_button') => $this->sendLangs(),
+            __('telegram.my_card_button') => $this->showMyCards($client),
             default => $client->state === ConversationStates::chat ?
                 Telegraph::chat($this->chat->chat_id)
                     ->message(__('telegram.misunderstanding'))

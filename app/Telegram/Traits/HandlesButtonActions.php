@@ -101,6 +101,9 @@ trait HandlesButtonActions
             ->row([
                 ReplyButton::make(__('telegram.help_button')),
                 ReplyButton::make(__('telegram.change_language_button')),
+            ])->chunk(2)
+            ->row([
+                ReplyButton::make(__('telegram.my_card_button')),
             ])->chunk(1)
             ->resize();
     }

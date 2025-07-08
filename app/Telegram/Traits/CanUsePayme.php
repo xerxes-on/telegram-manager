@@ -15,6 +15,11 @@ trait CanUsePayme
         $service = new PaycomSubscriptionService($this->chat->chat_id);
         return $service->cardsCreate($card, $expire, $client);
     }
+    public function callVerifyToken(Client $client, Card $card): bool
+    {
+        $service = new PaycomSubscriptionService($this->chat->chat_id);
+        return $service->cardsSendVerifyCode($client, $card->token);
+    }
 
     public function callVerifyCard(Client $client, string $code, Card $card): bool
     {
