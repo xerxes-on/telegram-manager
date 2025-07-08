@@ -76,7 +76,8 @@ class PaymeController extends Controller
             'CheckTransaction',
             'PerformTransaction',
             'GetStatement',
-            'ChangePassword'
+            'ChangePassword',
+            'CancelTransaction'
         ];
 
         return in_array($method, $methodsRequiringAccount);
