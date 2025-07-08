@@ -13,7 +13,7 @@ class DatabaseSeeder extends Seeder
     public function run(): void
     {
         $this->call(PlanSeeder::class);
-        $this->call(Order::factory()->count(5)->create());
+        Order::factory()->count(5)->create();
     }
 
 }
