@@ -95,6 +95,8 @@ trait HasPlans
         Cache::forget($this->chat->chat_id . "card");
         if ($verified) {
             $this->sendPlans();
+        }else{
+            $this->askForCardDetails($client);
         }
         die();
     }

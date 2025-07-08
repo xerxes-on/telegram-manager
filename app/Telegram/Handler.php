@@ -16,6 +16,7 @@ use DefStudio\Telegraph\Handlers\WebhookHandler;
 use DefStudio\Telegraph\Keyboard\Button;
 use DefStudio\Telegraph\Keyboard\Keyboard;
 use Illuminate\Support\Stringable;
+use JetBrains\PhpStorm\NoReturn;
 
 class Handler extends WebhookHandler
 {
@@ -24,7 +25,7 @@ class Handler extends WebhookHandler
     public Client $client;
 
 
-    public function start(): void
+    #[NoReturn] public function start(): void
     {
         Telegraph::chat($this->chat->chat_id)
             ->reactWithEmoji($this->message->id(), '😇')
@@ -37,6 +38,7 @@ class Handler extends WebhookHandler
 
         $this->sendClientDetails($client);
         $this->sendPlans();
+        die();
     }
 
 
@@ -55,6 +57,10 @@ class Handler extends WebhookHandler
 
         if ($text->value() === __('telegram.home_button')) {
             $this->goHome($client);
+            return;
+        }
+        if ($text->value() === __('telegram.change_language_button')) {
+            $this->sendLangs();
             return;
         }
 
