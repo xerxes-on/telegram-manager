@@ -20,6 +20,9 @@ return new class extends Migration
             $table->foreignId('plan_id')->constrained()->cascadeOnDelete();
             $table->timestamps();
             $table->index(['expires_at', 'status']);
+            $table->index('client_id');
+            $table->index('plan_id');
+            $table->index('created_at');
         });
     }
 

@@ -23,6 +23,7 @@ return new class extends Migration
             $table->string('lang', 5);
             $table->timestamps();
             $table->index(['phone_number', 'chat_id']);
+            $table->index('created_at');
         });
     }
 

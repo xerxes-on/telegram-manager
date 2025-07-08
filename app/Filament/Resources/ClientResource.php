@@ -11,6 +11,7 @@ use Filament\Resources\Resource;
 use Filament\Tables;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletingScope;
 
 class ClientResource extends Resource
@@ -87,6 +88,19 @@ class ClientResource extends Resource
         return [
             //
         ];
+    }
+
+    public static function canDeleteAny(): bool
+    {
+        return false;
+    }
+    public static function canCreate(): bool
+    {
+        return false;
+    }
+    public static function canEdit(Model $record): bool
+    {
+        return false;
     }
 
     public static function getPages(): array

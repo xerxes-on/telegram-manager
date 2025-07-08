@@ -20,6 +20,8 @@ return new class extends Migration
             $table->boolean('has_attachment')->default(false);
             $table->string('file_path')->nullable();
             $table->timestamps();
+            $table->index('user_id');
+            $table->index('created_at');
         });
     }
 

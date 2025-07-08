@@ -36,6 +36,12 @@ class BacklogPanelProvider extends PanelProvider
             ])
             ->discoverWidgets(in: app_path('Filament/Widgets'), for: 'App\\Filament\\Widgets')
             ->widgets([
+                \App\Filament\Widgets\UserStatsWidget::class,
+                \App\Filament\Widgets\ActiveSubscriptionsWidget::class,
+                \App\Filament\Widgets\SubscriptionDistributionWidget::class,
+                \App\Filament\Widgets\NewUsersThisMonthWidget::class,
+                \App\Filament\Widgets\ChurnedSubscriptionsWidget::class,
+                \App\Filament\Widgets\TopPlansWidget::class,
             ])
             ->middleware([
                 EncryptCookies::class,

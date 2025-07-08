@@ -24,14 +24,6 @@ class UserResource extends Resource
                 Forms\Components\TextInput::make('name')
                     ->required()
                     ->maxLength(255),
-                Forms\Components\TextInput::make('phone_number')
-                    ->tel()
-                    ->maxLength(13)
-                    ->default(null),
-                Forms\Components\TextInput::make('chat_id')
-                    ->numeric()
-                    ->default(null),
-                Forms\Components\DatePicker::make('expire_date'),
                 Forms\Components\TextInput::make('email')
                     ->email()
                     ->maxLength(50)
@@ -49,11 +41,6 @@ class UserResource extends Resource
             ->columns([
                 Tables\Columns\TextColumn::make('name')
                     ->searchable(),
-                Tables\Columns\TextColumn::make('phone_number')
-                    ->searchable(),
-                Tables\Columns\TextColumn::make('chat_id')
-                    ->numeric()
-                    ->sortable(),
                 Tables\Columns\TextColumn::make('created_at')
                     ->dateTime()
                     ->sortable()
@@ -62,9 +49,6 @@ class UserResource extends Resource
                     ->dateTime()
                     ->sortable()
                     ->toggleable(isToggledHiddenByDefault: true),
-                Tables\Columns\TextColumn::make('expire_date')
-                    ->date()
-                    ->sortable(),
                 Tables\Columns\TextColumn::make('email')
                     ->searchable(),
             ])

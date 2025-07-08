@@ -19,6 +19,8 @@ return new class extends Migration
             $table->foreignId('client_id')->constrained()->cascadeOnDelete();
             $table->timestamps();
             $table->index(['price', 'status']);
+            $table->index('client_id');
+            $table->index('created_at');
 
         });
     }

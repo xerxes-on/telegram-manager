@@ -26,6 +26,8 @@ return new class extends Migration
             $table->integer('order_id')->nullable();
             $table->string('perform_time_unix', 13)->nullable();
             $table->timestamps();
+            $table->index('order_id');
+            $table->index('created_at');
         });
     }
 
