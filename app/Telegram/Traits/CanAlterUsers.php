@@ -61,6 +61,7 @@ trait CanAlterUsers
                 'first_name' => $client->first_name,
                 'phone_number' => $client->phone_number,
             ]))
+            ->replyKeyboard($this->getDefaultKeyboard())
             ->send();
     }
 }
