@@ -45,7 +45,7 @@ class PaymeController extends Controller
             $base64Credentials = substr($auth, 6); // Remove 'Basic '
             $decodedCredentials = base64_decode($base64Credentials);
 
-            $parts = explode(':', $decodedCredentials, 2); // Split on first colon only
+            $parts = explode(':', $decodedCredentials, 2);
 
             if (count($parts) !== 2) {
                 return $this->jsonRpcError($requestId, -32504, [ // Insufficient privileges
