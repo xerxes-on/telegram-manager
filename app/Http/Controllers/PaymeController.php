@@ -25,7 +25,7 @@ class PaymeController extends Controller
     {
         // JSON-RPC standard fields
         $method = $request->input('method');
-        $auth = $request->input('Authorization');
+        $auth = $request->header('Authorization');
         $params = $request->input('params', []);
         $requestId = $request->input('id');
 
