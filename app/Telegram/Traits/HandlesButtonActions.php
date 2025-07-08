@@ -131,6 +131,6 @@ trait HandlesButtonActions
         $client = $this->getCreateClient();
         $client->update(['lang' => $code]);
         Telegraph::chat($this->chat->chat_id)->deleteMessage($this->messageId)->send();
-        $this->sendPlans();
+        Telegraph::chat($this->chat->chat_id)->message('✅')->replyKeyboard($this->getDefaultKeyboard())->send();
     }
 }
