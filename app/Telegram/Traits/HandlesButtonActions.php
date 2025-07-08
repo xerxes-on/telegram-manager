@@ -130,6 +130,7 @@ trait HandlesButtonActions
     {
         $client = $this->getCreateClient();
         $client->update(['lang' => $code]);
+        app()->setLocale($code);
         Telegraph::chat($this->chat->chat_id)->deleteMessage($this->messageId)->send();
         Telegraph::chat($this->chat->chat_id)->message('✅')->replyKeyboard($this->getDefaultKeyboard())->send();
     }
