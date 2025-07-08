@@ -120,7 +120,7 @@ class PaymeService
         $transaction = Transaction::query()->where('paycom_transaction_id', $params['id'])->first();
 
         if (!$transaction) {
-            return $this->error(-31003, 'Transaction not found.');
+            return $this->error(-31003, __('telegram.transaction_not_found'));
         }
 
         // Format response based on transaction state
@@ -144,7 +144,7 @@ class PaymeService
         $transaction = Transaction::query()->where('paycom_transaction_id', $params['id'])->first();
 
         if (!$transaction) {
-            return $this->error(-31003, 'Транзакция не найдена');
+            return $this->error(-31003, __('telegram.transaction_not_found'));
         }
 
         // If transaction is in "created" state => move it to "performed"
@@ -211,7 +211,7 @@ class PaymeService
         $transaction = Transaction::query()->where('paycom_transaction_id', $params['id'])->first();
 
         if (!$transaction) {
-            return $this->error(-31003, 'Transaction not found');
+            return $this->error(-31003, __('telegram.transaction_not_found'));
         }
 
         $currentMillis = (int)(microtime(true) * 1000);
@@ -224,7 +224,7 @@ class PaymeService
             $transaction->update();
 
             $order = Order::query()->find($transaction->order_id);
-            $order->update(['status' => 'canceled']);
+            $order->update(['status' => __('telegram.order_canceled')]);
 
             return [
                 'result' => [
@@ -243,7 +243,7 @@ class PaymeService
             $transaction->update();
 
             $order = Order::query()->find($transaction->order_id);
-            $order->update(['status' => 'bekor qilindi']);
+            $order->update(['status' => __('telegram.order_canceled')]);
 
             return [
                 'result' => [
@@ -291,7 +291,7 @@ class PaymeService
      */
     public function changePassword(): array
     {
-        return $this->error(-32504, 'Недостаточно привилегий для выполнения метода');
+        return $this->error(-32504, __('telegram.insufficient_privileges'));
     }
 
     /**

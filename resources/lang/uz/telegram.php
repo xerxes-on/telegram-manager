@@ -61,4 +61,39 @@ return [
     'two_months' => '2 oy',
     'six_months' => '6 oy',
     'one_year' => '1 yil',
+
+    'home_button' => '🏠 Bosh sahifa',
+    'change_language_button' => '🌐 Tilni o\'zgartirish',
+    'choose_lang' => 'Tilni tanlang:',
+    'eng' => '🇺🇸 English',
+    'ru' => '🇷🇺 Русский',
+    'uz' => '🇺🇿 O\'zbekcha',
+
+    // Payme service messages
+    'order_not_found' => 'Buyurtma topilmadi',
+    'incorrect_amount' => 'Noto\'g\'ri summa',
+    'order_payment_processing' => 'Buyurtma to\'lovi hozirda amalga oshirilmoqda',
+    'transaction_not_found' => 'Tranzaksiya topilmadi',
+    'insufficient_privileges' => 'Metodni bajarish uchun yetarli huquqlar yo\'q',
+    'order_canceled' => 'bekor qilindi',
+
+    // Subscription messages
+    'telegram_channel_subscription' => 'Telegram kanal obunasi',
+
+    // Subscription reminder job messages
+    'subscription_reminder_greeting' => 'Assalomu alaykum, :first_name!',
+    'subscription_reminder_message' => 'Eslatma: Sizning obunangiz :days_left kundan keyin tugaydi.',
+    'subscription_reminder_footer' => 'Obunani yangilashni unutmang, xizmatlarimizdan uzluksiz foydalanishingiz uchun :)',
+
+    // Subscription renewal job messages
+    'subscription_renewal_no_card' => 'Hurmatli :name, obunangizni avtomatik yangilash uchun tekshirilgan kartangiz topilmadi. Iltimos, kartangizni yangilang.',
+    'subscription_renewal_success' => 'Hurmatli :name, obunangiz muvaffaqiyatli yangilandi.',
+    'subscription_renewal_error' => 'Hurmatli :name, obunangizni yangilashda xatolik yuz berdi. Iltimos, balansingizni yangilang 😇',
+
+    // Announcement status messages
+    'announcement_state' => [
+        'in_progress' => 'Jarayonda',
+        'sent' => 'Yuborildi',
+        'failed' => 'Xatolik',
+    ],
 ]; 

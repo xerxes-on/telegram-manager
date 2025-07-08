@@ -84,6 +84,7 @@ trait HandlesButtonActions
         $service->kickUser();
         $user->subscriptions()->latest()->delete();
     }
+
     public function goHome(Client $client): void
     {
         $this->setState($client, ConversationStates::chat);
@@ -99,7 +100,34 @@ trait HandlesButtonActions
             ])->chunk(2)
             ->row([
                 ReplyButton::make(__('telegram.help_button')),
+                ReplyButton::make(__('telegram.change_language_button')),
             ])->chunk(1)
             ->resize();
+    }
+
+    public function setLanguage(Client $client = null): void
+    {
+        app()->setLocale($client ? $client->lang : 'uz');
+    }
+
+    public function sendLangs(): void
+    {
+        Telegraph::chat($this->chat->chat_id)
+            ->message(__('telegram.choose_lang'))
+            ->keyboard(
+                Keyboard::make()->buttons([
+                    Button::make(__('telegram.eng'))->action('changeLanguage')->param('code', 'en')->width(0.3),
+                    Button::make(__('telegram.ru'))->action('changeLanguage')->param('code', 'ru')->width(0.3),
+                    Button::make(__('telegram.uz'))->action('changeLanguage')->param('code', 'uz')->width(0.3)
+                ]))
+            ->send();
+    }
+
+    public function changeLanguage(string $code): void
+    {
+        $client = $this->getCreateClient();
+        $client->update(['lang' => $code]);
+        Telegraph::chat($this->chat->chat_id)->deleteMessage($this->messageId)->send();
+        $this->sendPlans();
     }
 }

@@ -21,8 +21,8 @@ class SubscriptionResource extends Resource
     {
         return $form
             ->schema([
-                Forms\Components\Select::make('user_id')
-                    ->relationship('user', 'name')
+                Forms\Components\Select::make('client_id')
+                    ->relationship('client', 'first_name')
                     ->required(),
                 Forms\Components\Toggle::make('status')
                     ->required(),
@@ -38,8 +38,7 @@ class SubscriptionResource extends Resource
     {
         return $table
             ->columns([
-                Tables\Columns\TextColumn::make('user.name')
-                    ->numeric()
+                Tables\Columns\TextColumn::make('client.first_name')
                     ->sortable(),
                 Tables\Columns\IconColumn::make('status')
                     ->boolean(),

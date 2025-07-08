@@ -144,7 +144,7 @@ class PaycomSubscriptionService extends WebhookHandler
             'detail' => [
                 'receipt_type' => 0,
                 'items' => [
-                    'title' => "Telegram channel subscription-" . $plan->name,
+                    'title' => __('telegram.telegram_channel_subscription') . "-" . $plan->name,
                     'price' => $plan->price,
                     'count' => 1,
                     'code' => "10306013001000000", // from Soliq

@@ -56,4 +56,38 @@ return [
     'two_months' => '2 months',
     'six_months' => '6 months',
     'one_year' => '1 year',
+    'home_button' => '🏠 Home',
+    'change_language_button' => '🌐 Change Language',
+    'choose_lang' => 'Choose language:',
+    'eng' => '🇺🇸 English',
+    'ru' => '🇷🇺 Русский',
+    'uz' => '🇺🇿 O\'zbekcha',
+
+    // Payme service messages
+    'order_not_found' => 'Order not found',
+    'incorrect_amount' => 'Incorrect amount',
+    'order_payment_processing' => 'Order payment is currently being processed',
+    'transaction_not_found' => 'Transaction not found',
+    'insufficient_privileges' => 'Insufficient privileges to execute method',
+    'order_canceled' => 'canceled',
+
+    // Subscription messages
+    'telegram_channel_subscription' => 'Telegram channel subscription',
+
+    // Subscription reminder job messages
+    'subscription_reminder_greeting' => 'Hello, :first_name!',
+    'subscription_reminder_message' => 'Reminder: Your subscription expires in :days_left days.',
+    'subscription_reminder_footer' => 'Don\'t forget to renew your subscription to continue using our services :)',
+
+    // Subscription renewal job messages
+    'subscription_renewal_no_card' => 'Dear :name, no verified card found for automatic subscription renewal. Please update your card.',
+    'subscription_renewal_success' => 'Dear :name, your subscription has been successfully renewed.',
+    'subscription_renewal_error' => 'Dear :name, an error occurred while renewing your subscription. Please update your balance 😇',
+
+    // Announcement status messages
+    'announcement_state' => [
+        'in_progress' => 'In Progress',
+        'sent' => 'Sent',
+        'failed' => 'Failed',
+    ],
 ]; 

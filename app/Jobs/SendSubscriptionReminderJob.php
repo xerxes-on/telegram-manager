@@ -2,10 +2,10 @@
 
 namespace App\Jobs;
 
-use App\Models\User;
-use App\Telegram\Services\HandleChannel;
+use App\Jobs\Interfaces\SubscriptionNotifier;
+use App\Jobs\services\TelegramUserKicker;
+use App\Models\Subscription;
 use Carbon\Carbon;
-use DefStudio\Telegraph\Facades\Telegraph;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Queue\Queueable;
 
@@ -13,42 +13,39 @@ class SendSubscriptionReminderJob implements ShouldQueue
 {
     use Queueable;
 
-    /**
-     * Create a new job instance.
-     */
-    public function __construct()
+    private SubscriptionNotifier $notifier;
+    private TelegramUserKicker $expiryHandler;
+
+    public function __construct(
+        SubscriptionNotifier $notifier,
+        TelegramUserKicker   $expiryHandler
+    )
     {
-        //
+        $this->notifier = $notifier;
+        $this->expiryHandler = $expiryHandler;
     }
 
-    /**
-     * Execute the job.
-     */
     public function handle(): void
     {
         $today = Carbon::now();
         $threeDaysBefore = $today->copy()->addDays(3)->toDateString();
         $twelveDaysBefore = $today->copy()->addWeek()->toDateString();
 
-        $users = User::whereDate('expire_date', $threeDaysBefore)
-            ->orWhereDate('expire_date', $twelveDaysBefore)
-            ->orWhere('expire_date', '<', $today->toDateString())
+        $subscriptions = Subscription::query()
+            ->whereDate('expires_at', $threeDaysBefore)
+            ->orWhereDate('expires_at', $twelveDaysBefore)
+            ->orWhere('expires_at', '<', $today->toDateString())
             ->get();
 
-        foreach ($users as $user) {
-            $daysLeft = $user->subscription_expires_at->diffInDays($today);
+        foreach ($subscriptions as $subscription) {
+            /** @var Subscription $subscription */
+            $daysLeft = $subscription->expires_at->diffInDays($today);
+            $client = $subscription->client;
 
             if ($daysLeft > 0) {
-                $message = "Assalomu alaykum, {$user->name}!\n\n".
-                    "Eslatma: Sizning obunangiz $daysLeft kundan keyin tugaydi.\n".
-                    "Obunani yangilashni unutmang, xizmatlarimizdan uzluksiz foydalanishingiz uchun :)";
-
-                Telegraph::chat($user->chat_id)
-                    ->message($message)
-                    ->send();
+                $this->notifier->notify($client, $daysLeft);
             } else {
-                $handleChannel = new HandleChannel($user);
-                $handleChannel->kickUser();
+                $this->expiryHandler->handle($client);
             }
         }
     }

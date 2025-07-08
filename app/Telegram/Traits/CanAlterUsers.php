@@ -49,6 +49,7 @@ trait CanAlterUsers
                 ->send();
             $this->askForPhoneNumber();
         }
+        $this->setLanguage($client);
 
         return $client;
     }

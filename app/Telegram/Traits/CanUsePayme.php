@@ -26,9 +26,10 @@ trait CanUsePayme
     {
         $service = new PaycomSubscriptionService($this->chat->chat_id);
         $order = Order::query()->where('client_id', $client->id)
-                                ->where('plan_id', $plan->id)
-                                ->where('price', $plan->price)
-                                ->first();
+            ->where('plan_id', $plan->id)
+            ->where('price', $plan->price)
+            ->where('status', 'created')
+            ->first();
 
         if (!$order) {
             $order = Order::query()->create([

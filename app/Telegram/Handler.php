@@ -30,11 +30,11 @@ class Handler extends WebhookHandler
             ->reactWithEmoji($this->message->id(), '😇')
             ->send();
 
+        $client = $this->getCreateClient();
         Telegraph::chat($this->chat->chat_id)
             ->message(__('telegram.welcome_message'))
             ->send();
 
-        $client = $this->getCreateClient();
         $this->sendClientDetails($client);
         $this->sendPlans();
     }
@@ -69,6 +69,7 @@ class Handler extends WebhookHandler
             __('telegram.payment_button') => $this->sendPlans(),
             __('telegram.subscription_status_button') => $this->processSubscriptionStatusButton(),
             __('telegram.help_button') => $this->processSupportButton(),
+            __('telegram.change_language_button') => $this->sendLangs(),
             default => $client->state === ConversationStates::chat ?
                 Telegraph::chat($this->chat->chat_id)
                     ->message(__('telegram.misunderstanding'))
@@ -81,10 +82,11 @@ class Handler extends WebhookHandler
     private function processPhoneNumber(Client $client, Contact $contact): void
     {
         $client->update(['phone_number' => $contact->phoneNumber()]);
+        $this->setLanguage($client);
 
         $this->setState($client, ConversationStates::chat);
 
-        $this->reply(__('phone_saved'), true);
+        $this->reply(__('telegram.phone_saved'), true);
 //            $this->showLanguageSelection();
         Telegraph::chat($this->chat->chat_id)
             ->message(__('telegram.thank_you_data_saved'))

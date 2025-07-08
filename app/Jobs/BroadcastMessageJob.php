@@ -2,44 +2,80 @@
 
 namespace App\Jobs;
 
+use App\Enums\AnnouncementStatus;
+use App\Models\Announcement;
+use App\Models\Client;
 use App\Models\User;
 use DefStudio\Telegraph\Facades\Telegraph;
-use DefStudio\Telegraph\Handlers\WebhookHandler;
-use DefStudio\Telegraph\Models\TelegraphBot;
+use Exception;
+use Filament\Notifications\Notification;
 use Illuminate\Contracts\Queue\ShouldQueue;
-use Illuminate\Foundation\Bus\Dispatchable;
 use Illuminate\Foundation\Queue\Queueable;
-use Illuminate\Http\Request;
-use Illuminate\Queue\InteractsWithQueue;
-use Illuminate\Queue\SerializesModels;
-use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 
-class BroadcastMessageJob extends WebhookHandler implements ShouldQueue
+class BroadcastMessageJob implements ShouldQueue
 {
-    use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
+    use Queueable;
 
-    protected User $user;
-    protected string $messageContent;
+    public Announcement $announcement;
 
     /**
      * Create a new job instance.
      */
-    public function __construct(User $user, string $messageContent)
+    public function __construct(Announcement $announcement)
     {
-        parent::__construct();
-        $this->user = $user;
-        $this->messageContent = $messageContent;
+        $this->announcement = $announcement;
     }
 
     /**
      * Execute the job.
-     * @param  Request  $request
-     * @param  TelegraphBot  $bot
      */
-    public function handle(Request $request, TelegraphBot $bot): void
+    public function handle(): void
     {
-        Telegraph::chat($this->user->chat_id)
-            ->markdownV2($this->messageContent)
-            ->send();
+        app()->setLocale('ru');
+        try {
+            $allClients = Client::all();
+            if ($this->announcement->has_attachment) {
+                foreach ($allClients as $client) {
+                    try {
+                        Telegraph::chat($client->chat_id)
+                            ->html($this->announcement->body)
+                            ->photo(url('storage/' . $this->announcement->file_path), __("filament.announcement.messages.attachment"))
+                            ->send();
+                    } catch (Exception $e) {
+                        Log::error(__('filament.announcement.messages.send_error_client', [
+//                            'client_id' => $client->id,
+                            'error' => $e->getMessage()
+                        ]));
+                    }
+                }
+            } else {
+                foreach ($allClients as $client) {
+                    try {
+                        Telegraph::chat($client->chat_id)
+                            ->html($this->announcement->body)
+                            ->send();
+                    } catch (Exception $e) {
+                        Log::error(__('filament.announcement.messages.send_error_client', [
+//                            'client_id' => $client->id,
+                            'error' => $e->getMessage()
+                        ]));
+                    }
+                }
+            }
+
+            $this->announcement->update(['status' => AnnouncementStatus::SENT]);
+            Notification::make()
+                ->body(__('filament.announcement.messages.send_success', ['id' => $this->announcement->id]))
+                ->success()
+                ->sendToDatabase(User::all());
+        } catch (Exception $e) {
+            Log::error(__('filament.announcement.messages.send_error', [
+                'id' => $this->announcement->id,
+                'error' => $e->getMessage()
+            ]));
+            $this->announcement->update(['status' => AnnouncementStatus::FAILED]);
+        }
     }
 }
