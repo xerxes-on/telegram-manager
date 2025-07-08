@@ -21,7 +21,6 @@ class OrderFactory extends Factory
         return [
             'price' => 100000,
             'plan_id' => 1,
-            'client_id' => Client::all()->first()->id,
             'status' => 'created',
             'created_at' => now(),
             'updated_at' => now(),

@@ -16,7 +16,7 @@ return new class extends Migration
             $table->integer('price');
             $table->foreignId('plan_id')->constrained()->cascadeOnDelete();
             $table->string('status');
-            $table->foreignId('client_id')->constrained()->cascadeOnDelete();
+            $table->foreignId('client_id')->nullable()->constrained()->cascadeOnDelete();
             $table->timestamps();
             $table->index(['price', 'status']);
             $table->index('client_id');
