@@ -52,13 +52,26 @@ class Handler extends WebhookHandler
     {
         $client = $this->getCreateClient();
 
-        match ($text->value()) {
-            __('telegram.payment_button') => $this->sendPlans(),
-            __('telegram.subscription_status_button') => $this->processSubscriptionStatusButton(),
-            __('telegram.help_button') => $this->processSupportButton(),
-            __('telegram.change_language_button') => $this->sendLangs(),
-            __('telegram.my_card_button') => $this->showMyCards($client)
-        };
+        switch ($text->value()) {
+            case __('telegram.payment_button'):
+                $this->sendPlans();
+                return;
+            case __('telegram.subscription_status_button'):
+                $this->processSubscriptionStatusButton();
+                return;
+            case __('telegram.help_button'):
+                $this->processSupportButton();
+                return;
+            case __('telegram.change_language_button'):
+                $this->sendLangs();
+                return;
+            case __('telegram.my_card_button'):
+                $this->showMyCards($client);
+                return;
+            default:
+                break;
+        }
+
         match ($client->state) {
             ConversationStates::waiting_phone => $this->processPhoneNumber($client, $this->message->contact()),
             ConversationStates::waiting_card => $this->processCardDetails($client, $text->value()),
