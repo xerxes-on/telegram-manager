@@ -23,6 +23,46 @@ class PaymeController extends Controller
      */
     public function handlePaymeRequest(Request $request): JsonResponse
     {
+        $authHeader = $request->header('Authorization');
+        if (!$authHeader || !str_starts_with($authHeader, 'Basic ')) {
+            return $this->jsonRpcError($request->input('id'), -32504, [
+                'uz' => 'Avtorizatsiya sarlavhasi topilmadi yoki noto\'g\'ri formatda.',
+                'ru' => 'Заголовок авторизации не найден или имеет неправильный формат.',
+                'en' => 'Authorization header not found or in wrong format.',
+            ]);
+        }
+
+        $base64Credentials = substr($authHeader, 6);
+        $decodedCredentials = base64_decode($base64Credentials);
+
+        $parts = explode(':', $decodedCredentials, 2);
+
+        if (count($parts) !== 2) {
+            return $this->jsonRpcError($request->input('id'), -32504, [
+                'uz' => 'Noto\'g\'ri avtorizatsiya ma\'lumotlari.',
+                'ru' => 'Неверные данные авторизации.',
+                'en' => 'Invalid authorization credentials.',
+            ]);
+        }
+
+//        $username = $parts[0];
+//        $password = $parts[1];
+//
+//        // !!! IMPORTANT: Replace 'YOUR_PAYCOM_API_KEY' with your actual Paycom API Key !!!
+//        // You should store this key securely, e.g., in your .env file
+//        $expectedUsername = 'Paycom'; // As per Paycom documentation for Basic Auth
+//        $expectedPassword = env('PAYCOM_API_KEY'); // Get from .env file
+//
+//        if ($username !== $expectedUsername || $password !== $expectedPassword) {
+//            return $this->jsonRpcError($request->input('id'), -32504, [ // Insufficient privileges
+//                'uz' => 'Login yoki parol noto\'g\'ri.',
+//                'ru' => 'Неверный логин или пароль.',
+//                'en' => 'Incorrect login or password.',
+//            ]);
+//        }
+//        // --- END AUTHENTICATION CHECK ---
+
+
         // JSON-RPC standard fields
         $method = $request->input('method');
         $params = $request->input('params', []);
