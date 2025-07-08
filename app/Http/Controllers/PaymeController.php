@@ -25,12 +25,16 @@ class PaymeController extends Controller
     {
         // JSON-RPC standard fields
         $method = $request->input('method');
+        $auth = $request->input('Authorization');
         $params = $request->input('params', []);
         $requestId = $request->input('id');
 
         // Validate request
         if (empty($method)) {
             return $this->jsonRpcError($requestId, -32600, 'Invalid request: missing "method".');
+        }
+        if (empty($auth)) {
+            return $this->jsonRpcError($requestId, -32504, $this->validateAccount($params));
         }
 
         // Validate 'account' key only for methods that require it
@@ -73,11 +77,6 @@ class PaymeController extends Controller
         $methodsRequiringAccount = [
             'CheckPerformTransaction',
             'CreateTransaction',
-            'CheckTransaction',
-            'PerformTransaction',
-            'GetStatement',
-            'ChangePassword',
-            'CancelTransaction'
         ];
 
         return in_array($method, $methodsRequiringAccount);
