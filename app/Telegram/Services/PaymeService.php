@@ -31,7 +31,13 @@ class PaymeService
                 'en' => 'Incorrect amount'
             ]);
         }
-
+        if($order->status !== 'created'){
+            return $this->error(-31050, [
+                'uz' => 'Buyurtma topilmadi',
+                'ru' => 'Заказ не найден',
+                'en' => 'Order not found'
+            ]);
+        }
         // 4. Return success
         return [
             'result' => [
