@@ -3,20 +3,21 @@
 namespace App\Filament\Widgets;
 
 use App\Models\Client;
-use Filament\Widgets\Widget;
+use Filament\Widgets\StatsOverviewWidget;
+use Filament\Widgets\StatsOverviewWidget\Stat;
 
-class NewUsersThisMonthWidget extends Widget
+class NewUsersThisMonthWidget extends StatsOverviewWidget
 {
-    protected static string $view = 'filament.widgets.new-users-this-month-widget';
-
-    public function getData(): array
+    protected function getStats(): array
     {
-        $count = Client::query()->whereBetween('created_at', [
+        $count = \App\Models\Client::query()->whereBetween('created_at', [
             now()->startOfMonth(),
             now()->endOfMonth(),
         ])->count();
         return [
-            'newUsers' => $count,
+            Stat::make('New Users This Month', $count)
+                ->descriptionIcon('heroicon-m-arrow-trending-up')
+                ->color('primary'),
         ];
     }
 }

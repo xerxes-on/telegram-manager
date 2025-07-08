@@ -3,16 +3,17 @@
 namespace App\Filament\Widgets;
 
 use App\Models\Client;
-use Filament\Widgets\Widget;
+use Filament\Widgets\StatsOverviewWidget as BaseWidget;
+use Filament\Widgets\StatsOverviewWidget\Stat;
 
-class UserStatsWidget extends Widget
+class UserStatsWidget extends BaseWidget
 {
-    protected static string $view = 'filament.widgets.user-stats-widget';
-
-    public function getData(): array
+    protected function getStats(): array
     {
         return [
-            'totalUsers' => Client::query()->count(),
+            Stat::make('Total Users', Client::query()->count())
+                ->descriptionIcon('heroicon-m-arrow-trending-up')
+                ->color('success'),
         ];
     }
 }
