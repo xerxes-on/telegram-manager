@@ -126,6 +126,7 @@ class PaymeController extends Controller
             'PerformTransaction' => $this->paymeService->performTransaction($params),
             'GetStatement' => $this->paymeService->getStatement($params),
             'ChangePassword' => $this->paymeService->changePassword(),
+            'CancelTransaction' => $this->paymeService->cancelTransaction($params),
             default => $this->error(-32601),
         };
     }
