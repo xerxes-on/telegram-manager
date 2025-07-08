@@ -33,10 +33,28 @@ class PaymeController extends Controller
         if (empty($method)) {
             return $this->jsonRpcError($requestId, -32600, 'Invalid request: missing "method".');
         }
-        if (empty($auth)) {
-            return $this->jsonRpcError($requestId, -32504, $this->validateAccount($params));
-        }
+        if (!empty($auth)) {
+            if (!str_starts_with($auth, 'Basic ')) {
+                return $this->jsonRpcError($requestId, -32504, [ // Insufficient privileges or Unauthorized
+                    'uz' => 'Avtorizatsiya sarlavhasi noto\'g\'ri formatda. "Basic" turi kutilmoqda.',
+                    'ru' => 'Заголовок авторизации имеет неправильный формат. Ожидается тип "Basic".',
+                    'en' => 'Authorization header in wrong format. "Basic" type expected.',
+                ]);
+            }
 
+            $base64Credentials = substr($auth, 6); // Remove 'Basic '
+            $decodedCredentials = base64_decode($base64Credentials);
+
+            $parts = explode(':', $decodedCredentials, 2); // Split on first colon only
+
+            if (count($parts) !== 2) {
+                return $this->jsonRpcError($requestId, -32504, [ // Insufficient privileges
+                    'uz' => 'Noto\'g\'ri avtorizatsiya ma\'lumotlari: foydalanuvchi nomi va parol formati xato.',
+                    'ru' => 'Неверные данные авторизации: ошибка формата логина и пароля.',
+                    'en' => 'Invalid authorization credentials: username and password format error.',
+                ]);
+            }
+        }
         // Validate 'account' key only for methods that require it
         if ($this->requiresAccountValidation($method)) {
             $accountValidation = $this->validateAccount($params);
@@ -77,6 +95,7 @@ class PaymeController extends Controller
         $methodsRequiringAccount = [
             'CheckPerformTransaction',
             'CreateTransaction',
+
         ];
 
         return in_array($method, $methodsRequiringAccount);
