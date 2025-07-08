@@ -2,7 +2,7 @@
 
 namespace App\Filament\Widgets;
 
-use App\Models\User;
+use App\Models\Client;
 use Filament\Widgets\Widget;
 
 class UserStatsWidget extends Widget
@@ -12,7 +12,7 @@ class UserStatsWidget extends Widget
     public function getData(): array
     {
         return [
-            'totalUsers' => User::count(),
+            'totalUsers' => Client::query()->count(),
         ];
     }
-} 
+}

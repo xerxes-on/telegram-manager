@@ -2,9 +2,8 @@
 
 namespace App\Filament\Widgets;
 
-use App\Models\User;
+use App\Models\Client;
 use Filament\Widgets\Widget;
-use Illuminate\Support\Carbon;
 
 class NewUsersThisMonthWidget extends Widget
 {
@@ -12,7 +11,7 @@ class NewUsersThisMonthWidget extends Widget
 
     public function getData(): array
     {
-        $count = User::whereBetween('created_at', [
+        $count = Client::query()->whereBetween('created_at', [
             now()->startOfMonth(),
             now()->endOfMonth(),
         ])->count();
@@ -20,4 +19,4 @@ class NewUsersThisMonthWidget extends Widget
             'newUsers' => $count,
         ];
     }
-} 
+}

@@ -12,7 +12,7 @@ class ActiveSubscriptionsWidget extends Widget
     public function getData(): array
     {
         return [
-            'activeSubscriptions' => Subscription::where('is_active', true)->count(),
+            'activeSubscriptions' => Subscription::query()->where('status', true)->count(),
         ];
     }
-} 
+}

@@ -12,8 +12,8 @@ class TopPlansWidget extends ChartWidget
 
     protected function getData(): array
     {
-        $plans = Plan::pluck('name', 'id');
-        $counts = Subscription::selectRaw('plan_id, count(*) as total')
+        $plans = Plan::query()->pluck('name', 'id');
+        $counts = Subscription::query()->selectRaw('plan_id, count(*) as total')
             ->groupBy('plan_id')
             ->pluck('total', 'plan_id');
 
@@ -39,4 +39,4 @@ class TopPlansWidget extends ChartWidget
     {
         return 'pie';
     }
-} 
+}

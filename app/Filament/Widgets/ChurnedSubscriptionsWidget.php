@@ -4,7 +4,6 @@ namespace App\Filament\Widgets;
 
 use App\Models\Subscription;
 use Filament\Widgets\Widget;
-use Illuminate\Support\Carbon;
 
 class ChurnedSubscriptionsWidget extends Widget
 {
@@ -12,11 +11,11 @@ class ChurnedSubscriptionsWidget extends Widget
 
     public function getData(): array
     {
-        $count = Subscription::where('expires_at', '>=', now()->subDays(30))
+        $count = Subscription::query()->where('expires_at', '>=', now()->subDays(30))
             ->where('status', false)
             ->count();
         return [
             'churned' => $count,
         ];
     }
-} 
+}
