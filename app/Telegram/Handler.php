@@ -52,39 +52,23 @@ class Handler extends WebhookHandler
     {
         $client = $this->getCreateClient();
 
-//        Telegraph::chat($this->chat->chat_id)
-//            ->deleteMessages([$this->messageId - 1, $this->messageId])
-//            ->send();
-
-        if ($text->value() === __('telegram.home_button')) {
-            $this->goHome($client);
-            return;
-        }
-        if ($text->value() === __('telegram.change_language_button')) {
-            $this->sendLangs();
-            return;
-        }
-
-        match ($client->state) {
-            ConversationStates::waiting_phone => $this->processPhoneNumber($client, $this->message->contact()),
-            ConversationStates::waiting_card => $this->processCardDetails($client, $text->value()),
-            ConversationStates::waiting_card_expire => $this->processCardExpire($client, $text->value()),
-            ConversationStates::waiting_card_verify => $this->processVerificationCode($client, $text->value()),
-            default => null,
-        };
         match ($text->value()) {
             __('telegram.payment_button') => $this->sendPlans(),
             __('telegram.subscription_status_button') => $this->processSubscriptionStatusButton(),
             __('telegram.help_button') => $this->processSupportButton(),
             __('telegram.change_language_button') => $this->sendLangs(),
-            __('telegram.my_card_button') => $this->showMyCards($client),
-            default => $client->state === ConversationStates::chat ?
-                Telegraph::chat($this->chat->chat_id)
-                    ->message(__('telegram.misunderstanding'))
-                    ->replyKeyboard($this->getDefaultKeyboard())
-                    ->send() : null,
+            __('telegram.my_card_button') => $this->showMyCards($client)
         };
-
+        match ($client->state) {
+            ConversationStates::waiting_phone => $this->processPhoneNumber($client, $this->message->contact()),
+            ConversationStates::waiting_card => $this->processCardDetails($client, $text->value()),
+            ConversationStates::waiting_card_expire => $this->processCardExpire($client, $text->value()),
+            ConversationStates::waiting_card_verify => $this->processVerificationCode($client, $text->value()),
+            ConversationStates::chat => Telegraph::chat($this->chat->chat_id)
+                ->message(__('telegram.misunderstanding'))
+                ->replyKeyboard($this->getDefaultKeyboard())
+                ->send(),
+        };
     }
 
     private function processPhoneNumber(Client $client, Contact $contact): void
