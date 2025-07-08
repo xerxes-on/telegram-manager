@@ -17,7 +17,7 @@ class ActiveSubscriptionsWidget extends ChartWidget
         })->reverse();
 
         $counts = Subscription::query()
-            ->selectRaw('DATE_FORMAT(created_at, "%Y-%m") as month, COUNT(*) as count')
+            ->selectRaw("TO_CHAR(created_at, 'YYYY-MM') as month, COUNT(*) as count")
             ->where('created_at', '>=', now()->subMonths(5)->startOfMonth())
             ->groupBy('month')
             ->orderBy('month')
