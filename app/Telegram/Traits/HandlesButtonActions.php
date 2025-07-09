@@ -29,7 +29,7 @@ trait HandlesButtonActions
     public function processSubscriptionStatusButton(): void
     {
         Telegraph::chat($this->chat->chat_id)
-            ->chatAction(ChatActions::CHOOSE_STICKER)
+            ->chatAction(ChatActions::TYPING)
             ->send();
 
         $sub = Subscription::query()
@@ -54,24 +54,13 @@ trait HandlesButtonActions
             ->send();
     }
 
-    public function home(): void
-    {
-//        $id = $this->request['message']['id'] - 1;
-//        if (!is_null($id)) {
-//            Telegraph::chat($this->chat->id)
-//                ->deleteMessage($id)
-//                ->send();
-//        }
-        $this->sendPlans();
-    }
-
     public function confirmDeletion(): void
     {
         Telegraph::chat($this->chat->chat_id)
             ->message(__('telegram.confirm_delete'))
             ->keyboard(
                 Keyboard::make()->buttons([
-                    Button::make(__('telegram.no_button'))->action('getDefaultKeyboard')->width(0.2),
+                    Button::make(__('telegram.no_button'))->action('goHomeAction')->width(0.2),
                     Button::make(__('telegram.yes_button'))->action('cancelPlan')->width(0.8)
                 ]))
             ->send();
@@ -79,10 +68,10 @@ trait HandlesButtonActions
 
     public function cancelPlan(): void
     {
-        $user = Client::query()->where('chat_id', $this->chat->chat_id)->first();
+        $user = $this->getCreateClient();
         $service = new HandleChannel($user);
         $service->kickUser();
-        $user->subscriptions()->latest()->delete();
+        $user->subscriptions()->delete();
     }
 
     public function goHome(Client $client): void

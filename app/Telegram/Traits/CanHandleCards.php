@@ -16,7 +16,7 @@ trait CanHandleCards
     {
         $buttons = [];
         foreach ($client->cards as $card) {
-            $buttons[] = Button::make($card->is_main ? '* ' . $card->masked_number : $card->masked_number)
+            $buttons[] = Button::make($card->is_main ? '✅   ' . $card->masked_number : $card->masked_number)
                 ->param('id', $card->id)
                 ->action('setMainCard');
         }

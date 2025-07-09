@@ -20,7 +20,7 @@ class HandleChannel
         $this->client = $client;
     }
 
-    public function getChannelUser(): void
+    public function getChannelUser()
     {
         $response = Http::get("https://api.telegram.org/bot$this->token/getChatMember", [
             'chat_id' => $this->channelId,
@@ -28,9 +28,7 @@ class HandleChannel
         ]);
 
         $result = $response->json();
-        $status = $result['result']['status'] ?? 'unknown';
-
-        Telegraph::chat($this->client->chat_id)->message($status)->send();
+        return $result['result']['status'] ?? 'unknown';
     }
 
     public function generateInviteLink(): void

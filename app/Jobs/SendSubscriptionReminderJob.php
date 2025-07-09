@@ -32,6 +32,7 @@ class SendSubscriptionReminderJob implements ShouldQueue
         $twelveDaysBefore = $today->copy()->addWeek()->toDateString();
 
         $subscriptions = Subscription::query()
+            ->where('status', 1)
             ->whereDate('expires_at', $threeDaysBefore)
             ->orWhereDate('expires_at', $twelveDaysBefore)
             ->orWhere('expires_at', '<', $today->toDateString())
@@ -42,7 +43,7 @@ class SendSubscriptionReminderJob implements ShouldQueue
             $daysLeft = $subscription->expires_at->diffInDays($today);
             $client = $subscription->client;
 
-            if ($daysLeft > 0) {
+            if ($daysLeft >= 0) {
                 $this->notifier->notify($client, $daysLeft);
             } else {
                 $this->expiryHandler->handle($client);
