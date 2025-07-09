@@ -15,3 +15,6 @@ Schedule::job(RenewSubscriptionsJob::class)
 Schedule::command('queue:work --stop-when-empty')
     ->everyFiveMinutes()
     ->withoutOverlapping();
+Schedule::command('schedule:run')
+    ->everyFourHours()
+    ->withoutOverlapping();
