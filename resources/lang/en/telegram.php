@@ -93,4 +93,5 @@ return [
     ],
     'choose_main_card' => 'Choose a card to make it main',
     'card_set_main_success' => 'Card :card is set as main successfully!',
+    'add_card_button' => '+ Add a card',
 ]; 

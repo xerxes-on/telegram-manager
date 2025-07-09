@@ -110,7 +110,7 @@ class PaycomSubscriptionService extends WebhookHandler
         $card->update([
             'verified' => $cardData['verify'],
         ]);
-
+        $card->client->setMainCard($card);
         $this->notify(__('telegram.card_verified'));
         return true;
     }

@@ -98,5 +98,6 @@ return [
     ],
     'choose_main_card' => 'Asosiy karta sifatida tanlang',
     'card_set_main_success' => 'Karta :card asosiy sifatida belgilandi!',
+    'add_card_button' => '+ Karta qo\'shish',
     'my_card_button' => '💳 Mening kartam',
 ]; 

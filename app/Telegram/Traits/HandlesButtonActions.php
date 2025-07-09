@@ -134,4 +134,16 @@ trait HandlesButtonActions
         Telegraph::chat($this->chat->chat_id)->deleteMessage($this->messageId)->send();
         Telegraph::chat($this->chat->chat_id)->message('✅')->replyKeyboard($this->getDefaultKeyboard())->send();
     }
+    public function showMyCardsAction(): void
+    {
+        $client = $this->getCreateClient();
+        Telegraph::chat($this->chat->chat_id)->deleteMessage($this->messageId)->send();
+        $this->showMyCards($client);
+    }
+    public function goHomeAction(): void
+    {
+        $client = $this->getCreateClient();
+        Telegraph::chat($this->chat->chat_id)->deleteMessage($this->messageId)->send();
+        $this->goHome($client);
+    }
 }

@@ -68,6 +68,9 @@ class Handler extends WebhookHandler
             case __('telegram.my_card_button'):
                 $this->showMyCards($client);
                 return;
+            case __('telegram.home_button'):
+                $this->goHome($client);
+                return;
             default:
                 break;
         }
@@ -108,7 +111,7 @@ class Handler extends WebhookHandler
     {
         Telegraph::chat($this->chat->chat_id)->deleteMessage($this->messageId)->send();
         $client = $this->getCreateClient();
-        if (empty($card = $client->cards()->where('verified', true)->first())) {
+        if (empty($card = $client->cards()->where(['verified'=> true, 'is_main'=>true])->first())) {
             $this->askForCardDetails($client);
         }
 
@@ -132,8 +135,8 @@ class Handler extends WebhookHandler
                 Keyboard::make()
                     ->buttons([
                         Button::make(__('telegram.confirm_button'))->action('payPayme')->param('plan_id', $planModel->id)->width(1),
-                        Button::make(__('telegram.change_card_button'))->action('askForCardDetails')->width(0.8),
-                        Button::make(__('telegram.back_button'))->action('home')->width(0.2),
+                        Button::make(__('telegram.change_card_button'))->action('showMyCardsAction')->width(0.8),
+                        Button::make(__('telegram.back_button'))->action('goHomeAction')->width(0.2),
                     ]))
             ->send();
     }
