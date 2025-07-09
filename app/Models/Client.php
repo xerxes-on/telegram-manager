@@ -62,7 +62,8 @@ class Client extends Model
     public function setMainCard(Card $newMainCard): void
     {
         $this->cards()->where('id', '!=', $newMainCard->id)->update(['is_main' => false]);
-        $newMainCard->update(['is_main' => true]);
+        $newMainCard->is_main = true;
+        $newMainCard->save();
     }
     public function hasUsedFreePlan(): bool
     {

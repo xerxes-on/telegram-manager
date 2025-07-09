@@ -81,7 +81,17 @@ trait HasPlans
     {
         Telegraph::chat($this->chat->chat_id)->deleteMessage($this->messageId)->send();
         $this->setState($client, ConversationStates::waiting_card);
-        Telegraph::chat($this->chat->chat_id)->message(__('telegram.ask_for_card_number'))->send();
+        Telegraph::chat($this->chat->chat_id)->message(__('telegram.ask_for_card_number'))
+            ->replyKeyboard(ReplyKeyboard::make()
+                ->row([
+                    ReplyButton::make(__('telegram.help_button')),
+                    ReplyButton::make(__('telegram.home_button')),
+                ])->chunk(2)
+                ->row([
+                    ReplyButton::make(__('telegram.change_language_button')),
+                ])->chunk(1)
+                ->resize()
+            )->send();
         die();
     }
 
@@ -95,7 +105,7 @@ trait HasPlans
         Cache::forget($this->chat->chat_id . "card");
         if ($verified) {
             $this->sendPlans();
-        }else{
+        } else {
             $this->askForCardDetails($client);
         }
         die();
