@@ -108,9 +108,10 @@ trait HandlesButtonActions
             ->message(__('telegram.choose_lang'))
             ->keyboard(
                 Keyboard::make()->buttons([
-                    Button::make(__('telegram.eng'))->action('changeLanguage')->param('code', 'en')->width(0.3),
-                    Button::make(__('telegram.ru'))->action('changeLanguage')->param('code', 'ru')->width(0.3),
-                    Button::make(__('telegram.uz'))->action('changeLanguage')->param('code', 'uz')->width(0.3)
+                    Button::make(__('telegram.eng'))->action('changeLanguage')->param('code', 'en')->width(0.25),
+                    Button::make(__('telegram.ru'))->action('changeLanguage')->param('code', 'ru')->width(0.25),
+                    Button::make(__('telegram.uz'))->action('changeLanguage')->param('code', 'uz')->width(0.25),
+                    Button::make(__('telegram.oz'))->action('changeLanguage')->param('code', 'oz')->width(0.25)
                 ]))
             ->send();
     }

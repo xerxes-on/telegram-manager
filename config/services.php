@@ -44,5 +44,10 @@ return [
         'package_code' => env('TAX_PACKAGE_CODE', 'package_code'),
         'vat_percent' => env('TAX_VAT_PERCENT', 4),
     ],
+    
+    'payment' => [
+        'max_retries' => env('MAX_PAYMENT_RETRIES', 3),
+        'retry_interval_hours' => env('PAYMENT_RETRY_INTERVAL_HOURS', 24),
+    ],
 
 ];

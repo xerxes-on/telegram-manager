@@ -94,4 +94,7 @@ return [
     'choose_main_card' => 'Choose a card to make it main',
     'card_set_main_success' => 'Card :card is set as main successfully!',
     'add_card_button' => '+ Add a card',
+    'my_card_button' => '💳 My Card',
+    'free_plan_card_explanation' => "For free plan you will not be charged, card adding is for clarifying you are a legit customer not an ai or a bot 😇",
+    'subscription_renewal_max_retries_reached' => "Dear :name, we tried to renew your subscription :retry_count times but were unsuccessful. Your subscription has been cancelled. Please resubscribe.",
 ]; 

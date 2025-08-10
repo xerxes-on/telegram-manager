@@ -116,9 +116,7 @@ class Handler extends WebhookHandler
         if (empty($card = $client->cards()->where(['verified' => true, 'is_main' => true])->first())) {
             if ($planModel->price == 0) {
                 Telegraph::chat($this->chat->chat_id)
-                    ->message("For free plan you will not be charged card adding
-                    is for clarifying you are a legit customer not an ai or a bot
-                    😇")->send();
+                    ->message(__('telegram.free_plan_card_explanation'))->send();
             }
             $this->askForCardDetails($client);
         }

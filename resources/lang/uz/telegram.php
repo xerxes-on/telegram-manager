@@ -100,4 +100,6 @@ return [
     'card_set_main_success' => 'Karta :card asosiy sifatida belgilandi!',
     'add_card_button' => '+ Karta qo\'shish',
     'my_card_button' => '💳 Mening kartam',
+    'free_plan_card_explanation' => "Bepul obuna uchun to'lov olinmaydi, lekin karta qo'shish sizning haqiqiy mijoz ekanligingizni tasdiqlash uchun kerak 😇",
+    'subscription_renewal_max_retries_reached' => "Hurmatli :name, obunangizni :retry_count marta yangilashga harakat qildik, ammo muvaffaqiyatli bo'lmadi. Obunangiz bekor qilindi. Iltimos, qayta obuna bo'ling.",
 ]; 
