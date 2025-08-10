@@ -39,6 +39,9 @@ return [
         'id' => env('PAYME_API_ID'),
         'key' => env('PAYME_API_KEY'),
     ],
+    'telegram' => [
+        'admin_chat_id' => env('ADMIN_CHAT_ID'),
+    ],
     'tax' => [
         'product_code' => env('TAX_PRODUCT_CODE', '10306013001000000'),
         'package_code' => env('TAX_PACKAGE_CODE', 'package_code'),

@@ -62,6 +62,7 @@ return [
     'eng' => '🇺🇸 English',
     'ru' => '🇷🇺 Русский',
     'uz' => '🇺🇿 O\'zbekcha',
+    'oz' => '🇺🇿 Ўзбекча',
     'my_card_button' => '💳 My Card',
 
     // Payme service messages

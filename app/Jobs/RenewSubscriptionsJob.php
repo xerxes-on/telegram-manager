@@ -49,7 +49,8 @@ class RenewSubscriptionsJob implements ShouldQueue
                     }
 
                     try {
-                        $this->callRecurrentPay($subscription->plan, $subscription->client);
+                        // Payme recurrent charge expects (Client, Plan)
+                        $this->callRecurrentPay($subscription->client, $subscription->plan);
                         
                         // Reset retry count on successful payment
                         $subscription->update([

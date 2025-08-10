@@ -152,7 +152,8 @@ class SubscriptionService
         try {
             $handleChannel = new HandleChannel($client);
             if ($handleChannel->getChannelUser() === 'unknown') {
-                $handleChannel->sendInviteLink();
+                // Method name in HandleChannel is generateInviteLink
+                $handleChannel->generateInviteLink();
             }
         } catch (\Exception $e) {
             Log::error('Failed to add user to channel', [

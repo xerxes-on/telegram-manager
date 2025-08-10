@@ -70,4 +70,9 @@ class Subscription extends Model
         $maxRetries = config('services.payment.max_retries', 3);
         return $this->payment_retry_count < $maxRetries;
     }
+
+    public function deactivate(): void
+    {
+        $this->update(['status' => false]);
+    }
 }

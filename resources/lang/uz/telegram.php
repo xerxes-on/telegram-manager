@@ -68,6 +68,7 @@ return [
     'eng' => '🇺🇸 English',
     'ru' => '🇷🇺 Русский',
     'uz' => '🇺🇿 O\'zbekcha',
+    'oz' => '🇺🇿 Ўзбекча',
 
     // Payme service messages
     'order_not_found' => 'Buyurtma topilmadi',

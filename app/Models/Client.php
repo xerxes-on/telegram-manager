@@ -67,18 +67,20 @@ class Client extends Model
     }
     public function hasUsedFreePlan(): bool
     {
-        $free_plan_id = Plan::query()->where('price', 0)->first()->id;
-        return $this->subscriptions()
-            ->where('plan_id', $free_plan_id)
-            ->exists();
+        $free_plan = Plan::query()->where('price', 0)->first();
+        if (!$free_plan) {
+            return false;
+        }
+        return $this->subscriptions()->where('plan_id', $free_plan->id)->exists();
     }
     public function hasActiveSubscription(): bool
     {
-        $free_plan_id = Plan::query()->where('price', 0)->first()->id;
-        return $this->subscriptions()
-            ->where('status', true)
-            ->where('plan_id', '!=', $free_plan_id)
-            ->where('expires_at', '>', now()->addDay()->format('Y-m-d'))
-            ->exists();
+        $free_plan = Plan::query()->where('price', 0)->first();
+        $query = $this->subscriptions()->where('status', true)
+            ->where('expires_at', '>', now()->addDay()->format('Y-m-d'));
+        if ($free_plan) {
+            $query->where('plan_id', '!=', $free_plan->id);
+        }
+        return $query->exists();
     }
 }

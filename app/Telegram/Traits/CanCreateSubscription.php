@@ -25,7 +25,6 @@ trait CanCreateSubscription
         Subscription::query()->create([
             'client_id' => $client->id,
             'receipt_id' => $receiptId,
-            'amount' => $plan->price,
             'expires_at' => $expires,
             'status' => 1,
             'plan_id' => $plan->id
