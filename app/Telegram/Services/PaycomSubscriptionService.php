@@ -147,9 +147,9 @@ class PaycomSubscriptionService extends WebhookHandler
                     'title' => __('telegram.telegram_channel_subscription') . "-" . $plan->name,
                     'price' => $plan->price,
                     'count' => 1,
-                    'code' => "10306013001000000", // from Soliq
-                    'package_code' => "package_code",// from Soliq
-                    'vat_percent' => 0,
+                    'code' => config('services.tax.product_code'),
+                    'package_code' => config('services.tax.package_code'),
+                    'vat_percent' => (int) config('services.tax.vat_percent'),
                 ],
             ],
         ];

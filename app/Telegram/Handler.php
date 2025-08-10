@@ -26,11 +26,13 @@ class Handler extends WebhookHandler
     public Client $client;
 
 
-    #[NoReturn] public function start(): void
+    public function start(): void
     {
-        Telegraph::chat($this->chat->chat_id)
-            ->reactWithEmoji($this->message->id(), '😇')
-            ->send();
+        if ($this->message) {
+            Telegraph::chat($this->chat->chat_id)
+                ->reactWithEmoji($this->message->id(), '😇')
+                ->send();
+        }
 
         $client = $this->getCreateClient();
         Telegraph::chat($this->chat->chat_id)
@@ -39,7 +41,8 @@ class Handler extends WebhookHandler
 
         $this->sendClientDetails($client);
         $this->sendPlans();
-        die();
+        // stop further processing in this command
+        return;
     }
 
 

@@ -24,9 +24,9 @@ class PaymeService
         }
 
         // 3. Check the amount
-        if ($order->price != $params['amount']) {
+        if ((int)$order->price !== (int)$params['amount']) {
             return $this->error(-31001, [
-                'uz' => 'Notogri summa',
+                'uz' => 'Noto\'g\'ri summa',
                 'ru' => 'Неверная сумма',
                 'en' => 'Incorrect amount'
             ]);
@@ -61,9 +61,9 @@ class PaymeService
         }
 
         // 3. Validate amount
-        if ($order->price != $params['amount']) {
+        if ((int)$order->price !== (int)$params['amount']) {
             return $this->error(-31001, [
-                'uz' => 'Notogri summa',
+                'uz' => 'Noto\'g\'ri summa',
                 'ru' => 'Неверная сумма',
                 'en' => 'Incorrect amount'
             ]);

@@ -22,7 +22,7 @@ trait CanAlterUsers
                     ->resize()
             )
             ->send();
-        die();
+        return;
     }
 
     public function setState(Client $client, ConversationStates $state): void
@@ -44,9 +44,11 @@ trait CanAlterUsers
                 'lang' => $telegramUser->languageCode(),
                 'state' => ConversationStates::waiting_phone,
             ]);
-            Telegraph::chat($this->chat->chat_id)
-                ->reactWithEmoji($this->message->id(), '😇')
-                ->send();
+            if ($this->message) {
+                Telegraph::chat($this->chat->chat_id)
+                    ->reactWithEmoji($this->message->id(), '😇')
+                    ->send();
+            }
             $this->askForPhoneNumber();
         }
         $this->setLanguage($client);

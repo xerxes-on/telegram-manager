@@ -12,9 +12,5 @@ Schedule::job(CheckSubscriptionsJob::class)
 Schedule::job(RenewSubscriptionsJob::class)
     ->twiceDaily()
     ->withoutOverlapping();
-Schedule::command('queue:work --stop-when-empty')
-    ->everyFiveMinutes()
-    ->withoutOverlapping();
-Schedule::command('schedule:run')
-    ->everyFourHours()
-    ->withoutOverlapping();
+// Run queue worker in daemon mode managed by supervisor in production.
+// Remove queue:work from scheduler to avoid spawning workers repeatedly.

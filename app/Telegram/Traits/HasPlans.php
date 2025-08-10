@@ -42,7 +42,7 @@ trait HasPlans
                     ->resize()
                 )->send();
         }
-        die();
+        return;
     }
 
     #[NoReturn] public function processCardExpire(Client $client, string $expire): void
@@ -57,7 +57,7 @@ trait HasPlans
             Telegraph::chat($this->chat->chat_id)
                 ->message(__('telegram.invalid_expiry_date'))
                 ->send();
-            die();
+            return;
         }
         list($month, $year) = explode('/', $expire);
         $month = (int)$month;
@@ -68,13 +68,13 @@ trait HasPlans
             Telegraph::chat($this->chat->chat_id)
                 ->message(__('telegram.card_expired'))
                 ->send();
-            die();
+            return;
         }
 
         list($month, $year) = explode('/', $expire);
         $expire = $month . $year;
         $this->callCreateCard($card, $expire, $client);
-        die();
+        return;
     }
 
     #[NoReturn] public function askForCardDetails(Client $client): void
@@ -92,7 +92,7 @@ trait HasPlans
                 ])->chunk(1)
                 ->resize()
             )->send();
-        die();
+        return;
     }
 
     #[NoReturn] public function processVerificationCode(Client $client, string $code): void
@@ -108,7 +108,7 @@ trait HasPlans
         } else {
             $this->askForCardDetails($client);
         }
-        die();
+        return;
     }
 
     private function sendPlans(): void

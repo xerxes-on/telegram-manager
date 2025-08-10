@@ -16,13 +16,11 @@ class SendSubscriptionReminderJob implements ShouldQueue
     private SubscriptionNotifier $notifier;
     private TelegramUserKicker $expiryHandler;
 
-    public function __construct(
-        SubscriptionNotifier $notifier,
-        TelegramUserKicker   $expiryHandler
-    )
+    public function __construct()
     {
-        $this->notifier = $notifier;
-        $this->expiryHandler = $expiryHandler;
+        // Dependencies will be resolved via container when handling
+        $this->notifier = app(SubscriptionNotifier::class);
+        $this->expiryHandler = app(TelegramUserKicker::class);
     }
 
     public function handle(): void
@@ -41,7 +39,7 @@ class SendSubscriptionReminderJob implements ShouldQueue
             ->chunk(100, function ($subscriptions) use ($today) {
                 foreach ($subscriptions as $subscription) {
                     /** @var Subscription $subscription */
-                    $daysLeft = abs($subscription->expires_at->diffInDays($today));
+                    $daysLeft = $subscription->expires_at->isFuture() ? $subscription->expires_at->diffInDays($today) : 0;
                     $client = $subscription->client;
 
                     if ($subscription->expires_at >= $today) {

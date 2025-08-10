@@ -32,12 +32,17 @@ trait HandlesButtonActions
             ->chatAction(ChatActions::TYPING)
             ->send();
 
+        $client = Client::query()->where('chat_id', $this->chat->chat_id)->first();
+        if (!$client) {
+            Telegraph::chat($this->chat->chat_id)
+                ->message(__('telegram.no_active_subscription'))
+                ->send();
+            return;
+        }
         $sub = Subscription::query()
             ->where('status', 1)
-            ->where('client_id',
-                Client::query()
-                    ->where('chat_id', $this->chat->chat_id)
-                    ->first()->id)
+            ->where('client_id', $client->id)
+            ->orderByDesc('expires_at')
             ->first();
         if (empty($sub)) {
             Telegraph::chat($this->chat->chat_id)
@@ -99,7 +104,11 @@ trait HandlesButtonActions
 
     public function setLanguage(Client $client = null): void
     {
-        app()->setLocale($client ? $client->lang : 'uz');
+        $lang = $client?->lang ?: config('app.locale', 'uz');
+        if (!in_array($lang, ['uz', 'ru', 'oz', 'en'])) {
+            $lang = 'uz';
+        }
+        app()->setLocale($lang);
     }
 
     public function sendLangs(): void

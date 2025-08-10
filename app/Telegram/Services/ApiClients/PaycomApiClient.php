@@ -44,6 +44,7 @@ class PaycomApiClient
         ];
 
         try {
+            // x-auth header per Payme: if front=true send only merchant id, otherwise id:key
             $auth = $front ? $this->apiId : ($this->apiId . ":" . $this->apiKey);
 
             $response = Http::withHeaders([
@@ -54,9 +55,10 @@ class PaycomApiClient
             $data = $response->json();
 
             if (isset($data['error'])) {
-                Log::warning($data['error']['message']);
+                $errorMessage = is_array($data['error']['message']) ? json_encode($data['error']['message']) : $data['error']['message'];
+                Log::warning($errorMessage);
                 Log::info($data);
-                throw new Exception($data['error']['message'] . ($data['error']['data']['message']['uz'] ?? ''));
+                throw new Exception($errorMessage . ' ' . ($data['error']['data']['message']['uz'] ?? ''));
             }
 
             if (isset($data['result'])) {

@@ -33,7 +33,7 @@ class PaymeController extends Controller
         if (empty($method)) {
             return $this->jsonRpcError($requestId, -32600, 'Invalid request: missing "method".');
         }
-        if (!str_starts_with($auth, 'Basic ')) {
+        if (empty($auth) || !str_starts_with($auth, 'Basic ')) {
             return $this->jsonRpcError($requestId, -32504, [ // Insufficient privileges or Unauthorized
                 'uz' => 'Avtorizatsiya sarlavhasi noto\'g\'ri formatda. "Basic" turi kutilmoqda.',
                 'ru' => 'Заголовок авторизации имеет неправильный формат. Ожидается тип "Basic".',
@@ -42,9 +42,17 @@ class PaymeController extends Controller
         }
 
         $base64Credentials = substr($auth, 6); // Remove 'Basic '
-        $decodedCredentials = base64_decode($base64Credentials);
+        $decodedCredentials = base64_decode($base64Credentials, true);
 
-        $parts = explode(':', $decodedCredentials);
+        if ($decodedCredentials === false) {
+            return $this->jsonRpcError($requestId, -32504, [
+                'uz' => 'Avtorizatsiya maʼlumotlarini koddan chiqarib boʻlmadi.',
+                'ru' => 'Не удалось декодировать данные авторизации.',
+                'en' => 'Failed to decode authorization header.',
+            ]);
+        }
+
+        $parts = explode(':', $decodedCredentials, 2);
         if (count($parts) !== 2) {
             return $this->jsonRpcError($requestId, -32504, [ // Insufficient privileges
                 'uz' => 'Noto\'g\'ri avtorizatsiya ma\'lumotlari: foydalanuvchi nomi va parol formati xato.',

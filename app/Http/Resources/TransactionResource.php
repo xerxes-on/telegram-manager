@@ -16,14 +16,14 @@ class TransactionResource extends JsonResource
     {
         return [
             'id' => $this->paycom_transaction_id,
-            'time' => $this->paycom_time,
+            'time' => (int) $this->paycom_time,
             'amount' => $this->amount,
             'account' => [
                 'order_id' => $this->order_id,
             ],
-            'create_time' => intval($this->paycom_time),
-            'perform_time' => intval($this->perform_time_unix),
-            'cancel_time' => intval($this->cancel_time) ?? 0,
+            'create_time' => (int) $this->paycom_time,
+            'perform_time' => (int) ($this->perform_time_unix ?? 0),
+            'cancel_time' => (int) ($this->cancel_time ?? 0),
             'transaction' => $this->id,
             'state' => $this->state,
             'reason' => $this->reason
