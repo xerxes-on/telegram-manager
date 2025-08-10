@@ -35,34 +35,37 @@ class BroadcastMessageJob implements ShouldQueue
     {
         app()->setLocale('ru');
         try {
-            $allClients = Client::all();
             if ($this->announcement->has_attachment) {
-                foreach ($allClients as $client) {
-                    try {
-                        Telegraph::chat($client->chat_id)
-                            ->html($this->announcement->body)
-                            ->photo(url('storage/' . $this->announcement->file_path), __("filament.announcement.messages.attachment"))
-                            ->send();
-                    } catch (Exception $e) {
-                        Log::error(__('filament.announcement.messages.send_error_client', [
-//                            'client_id' => $client->id,
-                            'error' => $e->getMessage()
-                        ]));
+                Client::chunk(100, function ($clients) {
+                    foreach ($clients as $client) {
+                        try {
+                            Telegraph::chat($client->chat_id)
+                                ->html($this->announcement->body)
+                                ->photo(url('storage/' . $this->announcement->file_path), __("filament.announcement.messages.attachment"))
+                                ->send();
+                        } catch (Exception $e) {
+                            Log::error(__('filament.announcement.messages.send_error_client', [
+                                'client_id' => $client->id,
+                                'error' => $e->getMessage()
+                            ]));
+                        }
                     }
-                }
+                });
             } else {
-                foreach ($allClients as $client) {
-                    try {
-                        Telegraph::chat($client->chat_id)
-                            ->html($this->announcement->body)
-                            ->send();
-                    } catch (Exception $e) {
-                        Log::error(__('filament.announcement.messages.send_error_client', [
-//                            'client_id' => $client->id,
-                            'error' => $e->getMessage()
-                        ]));
+                Client::chunk(100, function ($clients) {
+                    foreach ($clients as $client) {
+                        try {
+                            Telegraph::chat($client->chat_id)
+                                ->html($this->announcement->body)
+                                ->send();
+                        } catch (Exception $e) {
+                            Log::error(__('filament.announcement.messages.send_error_client', [
+                                'client_id' => $client->id,
+                                'error' => $e->getMessage()
+                            ]));
+                        }
                     }
-                }
+                });
             }
 
             $this->announcement->update(['status' => AnnouncementStatus::SENT]);

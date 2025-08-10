@@ -28,26 +28,28 @@ class SendSubscriptionReminderJob implements ShouldQueue
     public function handle(): void
     {
         $today = Carbon::now();
-        $threeDaysBefore = $today->copy()->addDays(3)->toDateString();
-        $twelveDaysBefore = $today->copy()->addWeek()->toDateString();
+        $threeDaysLater = $today->copy()->addDays(3)->toDateString();
+        $sevenDaysLater = $today->copy()->addWeek()->toDateString();
 
         $subscriptions = Subscription::query()
             ->where('status', 1)
-            ->whereDate('expires_at', $threeDaysBefore)
-            ->orWhereDate('expires_at', $twelveDaysBefore)
-            ->orWhere('expires_at', '<', $today->toDateString())
-            ->get();
+            ->where(function ($query) use ($threeDaysLater, $sevenDaysLater, $today) {
+                $query->whereDate('expires_at', $threeDaysLater)
+                    ->orWhereDate('expires_at', $sevenDaysLater)
+                    ->orWhere('expires_at', '<', $today->toDateString());
+            })
+            ->chunk(100, function ($subscriptions) use ($today) {
+                foreach ($subscriptions as $subscription) {
+                    /** @var Subscription $subscription */
+                    $daysLeft = abs($subscription->expires_at->diffInDays($today));
+                    $client = $subscription->client;
 
-        foreach ($subscriptions as $subscription) {
-            /** @var Subscription $subscription */
-            $daysLeft = $subscription->expires_at->diffInDays($today);
-            $client = $subscription->client;
-
-            if ($daysLeft >= 0) {
-                $this->notifier->notify($client, $daysLeft);
-            } else {
-                $this->expiryHandler->handle($client);
-            }
-        }
+                    if ($subscription->expires_at >= $today) {
+                        $this->notifier->notify($client, $daysLeft);
+                    } else {
+                        $this->expiryHandler->handle($client);
+                    }
+                }
+            });
     }
 }

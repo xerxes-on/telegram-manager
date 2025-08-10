@@ -17,21 +17,22 @@ class CheckSubscriptionsJob implements ShouldQueue
 
     public function handle(): void
     {
-        $subscriptions = Subscription::query()
+        Subscription::query()
             ->where('status', 1)
-            ->get();
-        foreach ($subscriptions as $subscription) {
-            /** @var Subscription $subscription */
-            $user = $subscription->client;
-            app()->setLocale($user->lang ?? 'uz');
-            if ($subscription->expires_at < Carbon::now()) {
-                $subscription->status = 0;
-                $subscription->save();
-                $handleChannel = new HandleChannel($user);
-                if ($handleChannel->getChannelUser() !== 'unknown') {
-                    $handleChannel->kickUser();
+            ->chunk(100, function ($subscriptions) {
+                foreach ($subscriptions as $subscription) {
+                    /** @var Subscription $subscription */
+                    $user = $subscription->client;
+                    app()->setLocale($user->lang ?? 'uz');
+                    if ($subscription->expires_at < Carbon::now()) {
+                        $subscription->status = 0;
+                        $subscription->save();
+                        $handleChannel = new HandleChannel($user);
+                        if ($handleChannel->getChannelUser() !== 'unknown') {
+                            $handleChannel->kickUser();
+                        }
+                    }
                 }
-            }
-        }
+            });
     }
 }
