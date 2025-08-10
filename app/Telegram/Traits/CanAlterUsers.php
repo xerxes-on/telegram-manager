@@ -4,6 +4,7 @@ namespace App\Telegram\Traits;
 
 use App\Enums\ConversationStates;
 use App\Models\Client;
+use App\Telegram\Services\MessageTracker;
 use DefStudio\Telegraph\Facades\Telegraph;
 use DefStudio\Telegraph\Keyboard\ReplyKeyboard;
 use JetBrains\PhpStorm\NoReturn;
@@ -13,7 +14,7 @@ trait CanAlterUsers
 
     #[NoReturn] public function askForPhoneNumber(): void
     {
-        Telegraph::chat($this->chat->chat_id)
+        $response = Telegraph::chat($this->chat->chat_id)
             ->message(__('telegram.ask_phone_number'))
             ->replyKeyboard(
                 ReplyKeyboard::make()
@@ -22,6 +23,11 @@ trait CanAlterUsers
                     ->resize()
             )
             ->send();
+            
+        if ($response->successful() && isset($response->json()['result']['message_id'])) {
+            MessageTracker::trackMessage($this->chat->chat_id, $response->json()['result']['message_id']);
+        }
+        
         return;
     }
 
@@ -42,14 +48,16 @@ trait CanAlterUsers
                 'last_name' => $telegramUser->lastName(),
                 'username' => $telegramUser->username(),
                 'lang' => $telegramUser->languageCode(),
-                'state' => ConversationStates::waiting_phone,
+                'state' => ConversationStates::waiting_lang,
             ]);
             if ($this->message) {
                 Telegraph::chat($this->chat->chat_id)
                     ->reactWithEmoji($this->message->id(), '😇')
                     ->send();
             }
-            $this->askForPhoneNumber();
+            // Ask for language first
+            $this->sendLangs();
+            return $client;
         }
         $this->setLanguage($client);
 

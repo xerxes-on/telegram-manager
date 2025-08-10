@@ -46,41 +46,66 @@ class ClientResource extends Resource
         return $table
             ->columns([
                 Tables\Columns\TextColumn::make('first_name')
-                    ->searchable(),
-                Tables\Columns\TextColumn::make('telegram_id')
-                    ->searchable(),
-                Tables\Columns\TextColumn::make('last_name')
-                    ->searchable(),
+                    ->label('Name')
+                    ->formatStateUsing(fn ($record) => $record->first_name . ' ' . $record->last_name)
+                    ->searchable(['first_name', 'last_name']),
                 Tables\Columns\TextColumn::make('phone_number')
-                    ->searchable(),
+                    ->searchable()
+                    ->copyable(),
                 Tables\Columns\TextColumn::make('username')
-                    ->searchable(),
-                Tables\Columns\TextColumn::make('state')
-                    ->searchable(),
-                Tables\Columns\TextColumn::make('chat_id')
+                    ->label('Telegram')
+                    ->formatStateUsing(fn ($state) => $state ? '@' . $state : '-')
                     ->searchable(),
                 Tables\Columns\TextColumn::make('lang')
-                    ->searchable(),
+                    ->label('Language')
+                    ->badge()
+                    ->color(fn ($state) => match($state) {
+                        'uz' => 'info',
+                        'ru' => 'warning',
+                        'en' => 'success',
+                        'oz' => 'primary',
+                        default => 'gray'
+                    }),
+                Tables\Columns\TextColumn::make('subscriptions_count')
+                    ->counts('subscriptions')
+                    ->label('Total Subs'),
+                Tables\Columns\TextColumn::make('active_subscription')
+                    ->label('Active Sub')
+                    ->getStateUsing(function ($record) {
+                        $activeSub = $record->subscriptions()
+                            ->where('status', true)
+                            ->where('expires_at', '>', now())
+                            ->first();
+                        return $activeSub ? $activeSub->plan->name : '-';
+                    }),
+                Tables\Columns\TextColumn::make('state')
+                    ->badge()
+                    ->toggleable(),
                 Tables\Columns\TextColumn::make('created_at')
-                    ->dateTime()
-                    ->sortable()
-                    ->toggleable(isToggledHiddenByDefault: true),
-                Tables\Columns\TextColumn::make('updated_at')
                     ->dateTime()
                     ->sortable()
                     ->toggleable(isToggledHiddenByDefault: true),
             ])
             ->filters([
-                //
+                Tables\Filters\SelectFilter::make('lang')
+                    ->options([
+                        'uz' => 'Uzbek',
+                        'ru' => 'Russian',
+                        'en' => 'English',
+                        'oz' => 'Uzbek (Cyrillic)',
+                    ]),
+                Tables\Filters\Filter::make('has_subscription')
+                    ->query(fn ($query) => $query->whereHas('subscriptions')),
+                Tables\Filters\Filter::make('active_subscription')
+                    ->query(fn ($query) => $query->whereHas('subscriptions', fn ($q) => 
+                        $q->where('status', true)->where('expires_at', '>', now()))),
             ])
             ->actions([
-                Tables\Actions\EditAction::make(),
+                Tables\Actions\ViewAction::make(),
             ])
             ->bulkActions([
-                Tables\Actions\BulkActionGroup::make([
-                    Tables\Actions\DeleteBulkAction::make(),
-                ]),
-            ]);
+            ])
+            ->defaultSort('created_at', 'desc');
     }
 
     public static function getRelations(): array

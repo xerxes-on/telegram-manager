@@ -39,32 +39,49 @@ class SubscriptionResource extends Resource
         return $table
             ->columns([
                 Tables\Columns\TextColumn::make('client.first_name')
+                    ->label('Client')
+                    ->searchable()
+                    ->sortable(),
+                Tables\Columns\TextColumn::make('client.phone_number')
+                    ->label('Phone')
+                    ->searchable(),
+                Tables\Columns\TextColumn::make('plan.name')
+                    ->label('Plan')
+                    ->sortable(),
+                Tables\Columns\TextColumn::make('plan.price')
+                    ->label('Price')
+                    ->money('UZS', divideBy: 100)
                     ->sortable(),
                 Tables\Columns\IconColumn::make('status')
-                    ->boolean(),
-                Tables\Columns\TextColumn::make('order_id')
-                    ->numeric()
-                    ->sortable(),
+                    ->boolean()
+                    ->label('Active'),
                 Tables\Columns\TextColumn::make('expires_at')
                     ->date()
-                    ->sortable(),
-                Tables\Columns\TextColumn::make('created_at')
-                    ->dateTime()
                     ->sortable()
-                    ->toggleable(isToggledHiddenByDefault: true),
-                Tables\Columns\TextColumn::make('updated_at')
+                    ->color(fn ($state) => $state->isPast() ? 'danger' : 'success'),
+                Tables\Columns\TextColumn::make('payment_retry_count')
+                    ->label('Retries')
+                    ->numeric()
+                    ->toggleable(),
+                Tables\Columns\TextColumn::make('created_at')
                     ->dateTime()
                     ->sortable()
                     ->toggleable(isToggledHiddenByDefault: true),
             ])
             ->filters([
-                //
+                Tables\Filters\TernaryFilter::make('status')
+                    ->label('Active Status'),
+                Tables\Filters\Filter::make('expired')
+                    ->query(fn ($query) => $query->where('expires_at', '<', now())),
+                Tables\Filters\SelectFilter::make('plan')
+                    ->relationship('plan', 'name'),
             ])
             ->actions([
                 Tables\Actions\ViewAction::make(),
             ])
             ->bulkActions([
-            ]);
+            ])
+            ->defaultSort('created_at', 'desc');
     }
 
     public static function getRelations(): array

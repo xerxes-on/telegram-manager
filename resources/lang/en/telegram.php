@@ -23,6 +23,7 @@ return [
     'command_not_understood' => "🤷‍ Sorry, I didn't understand this command.",
     'phone_saved' => 'Phone number saved.',
     'support_text' => "🙌 For support, please contact the admin: @xerxeson",
+    'support_text_detailed' => "🆘 Support Center\n\n📞 Call Center: :phone\n💬 Telegram: :telegram\n\n⏰ Working Hours: 09:00 - 18:00 (Mon-Fri)",
     'no_active_subscription' => "You don't have an active subscription 🙁",
     'subscription_expires_at' => "Your subscription is valid until :date 🙃",
     'cancel_button' => '❌ Cancel',
@@ -98,4 +99,5 @@ return [
     'my_card_button' => '💳 My Card',
     'free_plan_card_explanation' => "For free plan you will not be charged, card adding is for clarifying you are a legit customer not an ai or a bot 😇",
     'subscription_renewal_max_retries_reached' => "Dear :name, we tried to renew your subscription :retry_count times but were unsuccessful. Your subscription has been cancelled. Please resubscribe.",
+    'plan_not_found' => "Subscription plan not found. Please select again.",
 ]; 

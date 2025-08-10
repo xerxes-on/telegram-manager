@@ -73,7 +73,13 @@ trait HasPlans
 
         list($month, $year) = explode('/', $expire);
         $expire = $month . $year;
-        $this->callCreateCard($card, $expire, $client);
+        $success = $this->callCreateCard($card, $expire, $client);
+        
+        // If card creation failed, the PaycomSubscriptionService will handle asking for card again
+        // We just need to clear the cache
+        if (!$success) {
+            Cache::forget($this->chat->chat_id . "card");
+        }
         return;
     }
 
@@ -104,6 +110,17 @@ trait HasPlans
         $verified = $this->callVerifyCard($client, $code, $card);
         Cache::forget($this->chat->chat_id . "card");
         if ($verified) {
+            // Check if user had selected a plan before
+            $selectedPlanId = cache()->get("selected_plan_{$client->id}");
+            if ($selectedPlanId) {
+                cache()->forget("selected_plan_{$client->id}");
+                // Trigger plan selection with the previously selected plan
+                $plan = \App\Models\Plan::find($selectedPlanId);
+                if ($plan) {
+                    $this->savePlan($plan->name);
+                    return;
+                }
+            }
             $this->sendPlans();
         } else {
             $this->askForCardDetails($client);
@@ -125,5 +142,106 @@ trait HasPlans
                 ])
             )
             ->send();
+    }
+
+    /**
+     * Show plans for selection
+     */
+    public function showPlans(): void
+    {
+        $this->sendPlans();
+    }
+
+    /**
+     * Handle immediate subscription renewal
+     */
+    public function renewSubscriptionNow(): void
+    {
+        $subscriptionId = $this->data->get('subscription_id');
+        $subscription = \App\Models\Subscription::find($subscriptionId);
+        
+        if (!$subscription || !$subscription->canRenewEarly()) {
+            Telegraph::chat($this->chat->chat_id)
+                ->message(__('telegram.renewal_not_available'))
+                ->send();
+            return;
+        }
+
+        $client = $subscription->client;
+        app()->setLocale($client->lang ?? 'uz');
+
+        // Check if user has cards
+        $cards = $client->cards()
+            ->where('verified', true)
+            ->orderBy('is_main', 'desc')
+            ->get();
+
+        if ($cards->isEmpty()) {
+            Telegraph::chat($this->chat->chat_id)
+                ->message(__('telegram.no_cards_for_renewal'))
+                ->keyboard(
+                    Keyboard::make()->buttons([
+                        Button::make(__('telegram.add_card_button'))
+                            ->action('addCardForRenewal')
+                            ->param('subscription_id', $subscription->id)
+                    ])
+                )
+                ->send();
+            return;
+        }
+
+        // Attempt renewal with all cards
+        $service = app(\App\Services\SubscriptionService::class);
+        $renewed = false;
+        $lastError = null;
+
+        foreach ($cards as $card) {
+            try {
+                $newSubscription = $service->renewSubscription($subscription, $card);
+                if ($newSubscription) {
+                    $renewed = true;
+                    Telegraph::chat($this->chat->chat_id)
+                        ->message(__('telegram.subscription_renewed_success', [
+                            'plan' => $newSubscription->plan->name,
+                            'expires_at' => $newSubscription->expires_at->format('d.m.Y')
+                        ]))
+                        ->replyKeyboard($this->getDefaultKeyboard())
+                        ->send();
+                    break;
+                }
+            } catch (\Exception $e) {
+                $lastError = $e->getMessage();
+            }
+        }
+
+        if (!$renewed) {
+            Telegraph::chat($this->chat->chat_id)
+                ->message(__('telegram.renewal_payment_failed'))
+                ->keyboard(
+                    Keyboard::make()->buttons([
+                        Button::make(__('telegram.add_new_card_button'))
+                            ->action('addCardForRenewal')
+                            ->param('subscription_id', $subscription->id),
+                        Button::make(__('telegram.retry_button'))
+                            ->action('renewSubscriptionNow')
+                            ->param('subscription_id', $subscription->id)
+                    ])
+                )
+                ->send();
+        }
+    }
+
+    /**
+     * Add card for renewal
+     */
+    public function addCardForRenewal(): void
+    {
+        $subscriptionId = $this->data->get('subscription_id');
+        $client = $this->getCreateClient();
+        
+        // Store subscription ID for later use
+        cache()->put("renewal_subscription_{$client->id}", $subscriptionId, now()->addHours(1));
+        
+        $this->askForCardDetails($client);
     }
 }

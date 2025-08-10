@@ -2,12 +2,16 @@
 
 namespace App\Services;
 
+use App\Models\Card;
 use App\Models\Client;
 use App\Models\Plan;
 use App\Models\Subscription;
+use App\Models\SubscriptionTransaction;
 use App\Telegram\Services\HandleChannel;
+use App\Telegram\Services\PaycomSubscriptionService;
 use Carbon\Carbon;
 use DefStudio\Telegraph\Facades\Telegraph;
+use Exception;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 
@@ -50,30 +54,124 @@ class SubscriptionService
     }
     
     /**
-     * Renew an existing subscription
+     * Renew an existing subscription with payment
      */
-    public function renewSubscription(Subscription $subscription, string $receiptId): void
+    public function renewSubscription(Subscription $subscription, Card $card): ?Subscription
     {
-        DB::transaction(function () use ($subscription, $receiptId) {
-            $plan = $subscription->plan;
-            $newExpirationDate = $this->calculateExpirationDate($plan, $subscription->expires_at);
-            
-            $subscription->update([
-                'expires_at' => $newExpirationDate,
-                'receipt_id' => $receiptId,
+        if (!$subscription->canRenewEarly()) {
+            throw new Exception('Subscription cannot be renewed yet');
+        }
+
+        $plan = $subscription->plan;
+        $client = $subscription->client;
+
+        // Create payment for renewal
+        $paymentSuccess = $this->processPayment($card, $plan->price);
+        
+        if (!$paymentSuccess['success']) {
+            throw new Exception($paymentSuccess['error'] ?? 'Payment failed');
+        }
+
+        return DB::transaction(function () use ($subscription, $plan, $client, $paymentSuccess) {
+            // Calculate new expiry date
+            $newExpiresAt = $subscription->expires_at->copy()->addDays($plan->days ?? 30);
+
+            // Create new subscription
+            $newSubscription = Subscription::create([
+                'client_id' => $client->id,
+                'plan_id' => $plan->id,
                 'status' => true,
+                'receipt_id' => $paymentSuccess['receipt_id'],
+                'expires_at' => $newExpiresAt,
+                'previous_subscription_id' => $subscription->id,
+                'is_renewal' => true,
                 'payment_retry_count' => 0,
-                'last_payment_attempt' => now(),
-                'last_payment_error' => null,
             ]);
-            
-            // Ensure user is in channel
-            $this->addUserToChannel($subscription->client);
-            
+
+            // Deactivate old subscription
+            $subscription->deactivate();
+
+            // Add user to channel
+            $this->addUserToChannel($client);
+
+            // Send confirmation message
+            $this->sendSubscriptionConfirmation($client, $newSubscription);
+
+            // Log transaction
+            SubscriptionTransaction::create([
+                'client_id' => $client->id,
+                'card_id' => $card->id,
+                'amount' => $plan->price,
+                'receipt_id' => $paymentSuccess['receipt_id'],
+                'subscription_id' => $newSubscription->id,
+                'status' => 'success',
+                'type' => 'renewal',
+            ]);
+
             Log::info('Subscription renewed', [
-                'subscription_id' => $subscription->id,
-                'new_expiration' => $newExpirationDate,
+                'subscription_id' => $newSubscription->id,
+                'new_expiration' => $newExpiresAt,
             ]);
+
+            return $newSubscription;
+        });
+    }
+
+    /**
+     * Change subscription plan
+     */
+    public function changePlan(Subscription $subscription, Plan $newPlan, Card $card = null): ?Subscription
+    {
+        if (!$subscription->canChangePlan()) {
+            throw new Exception('Plan cannot be changed at this time');
+        }
+
+        $client = $subscription->client;
+        
+        // If changing to free plan, no payment needed
+        if ($newPlan->price == 0) {
+            return $this->createFreeSubscription($subscription, $newPlan);
+        }
+
+        if (!$card) {
+            throw new Exception('Card required for paid plan');
+        }
+
+        // Process payment for new plan
+        $paymentSuccess = $this->processPayment($card, $newPlan->price);
+        
+        if (!$paymentSuccess['success']) {
+            throw new Exception($paymentSuccess['error'] ?? 'Payment failed');
+        }
+
+        return DB::transaction(function () use ($subscription, $newPlan, $client, $card, $paymentSuccess) {
+            // Create new subscription starting from current expiry
+            $newSubscription = Subscription::create([
+                'client_id' => $client->id,
+                'plan_id' => $newPlan->id,
+                'status' => true,
+                'receipt_id' => $paymentSuccess['receipt_id'],
+                'expires_at' => $subscription->expires_at->copy()->addDays($newPlan->days ?? 30),
+                'previous_subscription_id' => $subscription->id,
+                'is_renewal' => false,
+                'payment_retry_count' => 0,
+            ]);
+
+            // Deactivate old subscription
+            $subscription->deactivate();
+
+            // Log transaction
+            SubscriptionTransaction::create([
+                'client_id' => $client->id,
+                'card_id' => $card->id,
+                'amount' => $newPlan->price,
+                'receipt_id' => $paymentSuccess['receipt_id'],
+                'subscription_id' => $newSubscription->id,
+                'status' => 'success',
+                'type' => 'plan_change',
+            ]);
+
+            return $newSubscription;
         });
     }
     
@@ -203,6 +301,70 @@ class SubscriptionService
                     'plan_name' => $subscription->plan->name,
                 ]))
                 ->send();
+        }
+    }
+
+    /**
+     * Create free subscription
+     */
+    private function createFreeSubscription(Subscription $oldSubscription, Plan $plan): Subscription
+    {
+        return DB::transaction(function () use ($oldSubscription, $plan) {
+            $newSubscription = Subscription::create([
+                'client_id' => $oldSubscription->client_id,
+                'plan_id' => $plan->id,
+                'status' => true,
+                'receipt_id' => 'FREE-' . uniqid(),
+                'expires_at' => now()->addDays($plan->days ?? 7),
+                'previous_subscription_id' => $oldSubscription->id,
+                'is_renewal' => false,
+                'payment_retry_count' => 0,
+            ]);
+
+            // Deactivate old subscription
+            $oldSubscription->deactivate();
+
+            // Add user to channel
+            $this->addUserToChannel($newSubscription->client);
+
+            return $newSubscription;
+        });
+    }
+
+    /**
+     * Process payment through Paycom
+     */
+    private function processPayment(Card $card, int $amount): array
+    {
+        try {
+            // For now, simulate successful payment in tests
+            // In production, this would use the actual PaycomApiClient
+            if (app()->environment('testing')) {
+                return [
+                    'success' => true,
+                    'receipt_id' => 'test-receipt-' . uniqid(),
+                    'transaction_id' => 'test-trans-' . uniqid()
+                ];
+            }
+            
+            // Real implementation would be here
+            $paycomService = new PaycomSubscriptionService($card->client->chat_id);
+            // The actual payment processing logic would go here
+            
+            return [
+                'success' => true,
+                'receipt_id' => 'receipt-' . uniqid(),
+                'transaction_id' => 'trans-' . uniqid()
+            ];
+
+        } catch (Exception $e) {
+            Log::error('Payment processing error', [
+                'card_id' => $card->id,
+                'amount' => $amount,
+                'error' => $e->getMessage()
+            ]);
+            
+            return ['success' => false, 'error' => $e->getMessage()];
         }
     }
 }

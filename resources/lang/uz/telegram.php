@@ -23,6 +23,7 @@ return [
     'command_not_understood' => "🤷‍ Kechirasiz, bu buyruqni tushunmadim.",
     'phone_saved' => 'Telefon raqam saqlandi.',
     'support_text' => "🙌 Qo'llab quvvatlash uchun adminga murojaat qiling: @xerxeson",
+    'support_text_detailed' => "🆘 Yordam markazi\n\n📞 Call Center: :phone\n💬 Telegram: :telegram\n\n⏰ Ish vaqti: 09:00 - 18:00 (Dush-Jum)",
     'no_active_subscription' => "Sizda faol obuna yo'q 🙁",
     'subscription_expires_at' => "Obunangiz :date gacha mavjud 🙃",
     'cancel_button' => '❌ Bekor qilish',
@@ -103,4 +104,23 @@ return [
     'my_card_button' => '💳 Mening kartam',
     'free_plan_card_explanation' => "Bepul obuna uchun to'lov olinmaydi, lekin karta qo'shish sizning haqiqiy mijoz ekanligingizni tasdiqlash uchun kerak 😇",
     'subscription_renewal_max_retries_reached' => "Hurmatli :name, obunangizni :retry_count marta yangilashga harakat qildik, ammo muvaffaqiyatli bo'lmadi. Obunangiz bekor qilindi. Iltimos, qayta obuna bo'ling.",
+    'plan_not_found' => "Obuna rejasi topilmadi. Iltimos, qaytadan tanlang.",
+    'card_error_try_again' => "Karta qo'shishda xatolik yuz berdi. Iltimos, qaytadan urinib ko'ring.",
+    'card_add_failed' => "Kartani qo'shib bo'lmadi. Iltimos, boshqa karta raqamini kiriting.",
+    'welcome_back' => "🏠 Bosh sahifa",
+    
+    // Renewal messages
+    'subscription_renewed_success' => "✅ Obunangiz muvaffaqiyatli yangilandi!\n📅 Tarif: :plan\n📆 Amal qilish muddati: :expires_at",
+    'subscription_renewal_failed' => "⚠️ Obunangizni yangilashda xatolik yuz berdi.\n📅 Amal qilish muddati tugashiga :days_left kun qoldi.",
+    'subscription_expired_kicked' => "❌ Obunangiz muddati tugadi va siz kanaldan chiqarildingiz.\n\n📱 Yangi obuna sotib olish uchun quyidagi tugmani bosing:",
+    'renewal_not_available' => '⚠️ Obunani hali yangilab bo\'lmaydi. Muddati tugashiga 3 kun qolganda yangilashingiz mumkin.',
+    'no_cards_for_renewal' => '❌ Obunani yangilash uchun karta topilmadi. Iltimos, karta qo\'shing.',
+    'renewal_payment_failed' => '❌ To\'lov amalga oshmadi. Boshqa karta qo\'shib ko\'ring yoki qayta urinib ko\'ring.',
+    'subscription_expiring_reminder' => "⏰ Obunangiz muddati tugashiga :days kun qoldi!\n\n📅 Tarif: :plan\n📆 Tugash sanasi: :expires_at\n\n💳 Obunani yangilash uchun quyidagi tugmani bosing:",
+    
+    // Button texts  
+    'pay_now_button' => '💳 Hozir to\'lash',
+    'view_plans_button' => '📱 Tariflarni ko\'rish',
+    'add_new_card_button' => '💳 Yangi karta qo\'shish',
+    'retry_button' => '🔄 Qayta urinish',
 ]; 

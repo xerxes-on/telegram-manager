@@ -52,5 +52,10 @@ return [
         'max_retries' => env('MAX_PAYMENT_RETRIES', 3),
         'retry_interval_hours' => env('PAYMENT_RETRY_INTERVAL_HOURS', 24),
     ],
+    
+    'support' => [
+        'phone_number' => env('SUPPORT_PHONE_NUMBER', '+998901234567'),
+        'telegram_username' => env('SUPPORT_TELEGRAM_USERNAME', '@support_username'),
+    ],
 
 ];

@@ -6,6 +6,7 @@ use App\Enums\ConversationStates;
 use App\Models\Client;
 use App\Models\Subscription;
 use App\Telegram\Services\HandleChannel;
+use App\Telegram\Services\MessageTracker;
 use DefStudio\Telegraph\Enums\ChatActions;
 use DefStudio\Telegraph\Exceptions\TelegraphException;
 use DefStudio\Telegraph\Facades\Telegraph;
@@ -18,8 +19,14 @@ trait HandlesButtonActions
 {
     public function processSupportButton(): void
     {
+        $supportPhone = config('services.support.phone_number', '+998901234567');
+        $supportTelegram = config('services.support.telegram_username', '@xerxeson');
+        
         Telegraph::chat($this->chat->chat_id)
-            ->message(__('telegram.support_text'))
+            ->message(__('telegram.support_text_detailed', [
+                'phone' => $supportPhone,
+                'telegram' => $supportTelegram
+            ]))
             ->send();
     }
 
@@ -82,6 +89,13 @@ trait HandlesButtonActions
     public function goHome(Client $client): void
     {
         $this->setState($client, ConversationStates::chat);
+        
+        // Send welcome back message with default keyboard
+        $this->telegraph()
+            ->message(__('telegram.welcome_back'))
+            ->replyKeyboard($this->getDefaultKeyboard())
+            ->send();
+            
         $this->sendPlans();
     }
 
@@ -105,7 +119,7 @@ trait HandlesButtonActions
     public function setLanguage(Client $client = null): void
     {
         $lang = $client?->lang ?: config('app.locale', 'uz');
-        if (!in_array($lang, ['uz', 'ru', 'oz', 'en'])) {
+        if (!in_array($lang, ['uz', 'ru', 'oz'])) {
             $lang = 'uz';
         }
         app()->setLocale($lang);
@@ -113,16 +127,19 @@ trait HandlesButtonActions
 
     public function sendLangs(): void
     {
-        Telegraph::chat($this->chat->chat_id)
+        $response = Telegraph::chat($this->chat->chat_id)
             ->message(__('telegram.choose_lang'))
             ->keyboard(
                 Keyboard::make()->buttons([
-                    Button::make(__('telegram.eng'))->action('changeLanguage')->param('code', 'en')->width(0.25),
-                    Button::make(__('telegram.ru'))->action('changeLanguage')->param('code', 'ru')->width(0.25),
-                    Button::make(__('telegram.uz'))->action('changeLanguage')->param('code', 'uz')->width(0.25),
-                    Button::make(__('telegram.oz'))->action('changeLanguage')->param('code', 'oz')->width(0.25)
+                    Button::make(__('telegram.ru'))->action('changeLanguage')->param('code', 'ru')->width(0.33),
+                    Button::make(__('telegram.uz'))->action('changeLanguage')->param('code', 'uz')->width(0.33),
+                    Button::make(__('telegram.oz'))->action('changeLanguage')->param('code', 'oz')->width(0.33)
                 ]))
             ->send();
+            
+        if ($response->successful() && isset($response->json()['result']['message_id'])) {
+            MessageTracker::trackMessage($this->chat->chat_id, $response->json()['result']['message_id']);
+        }
     }
 
     public function changeLanguage(string $code): void
@@ -131,7 +148,17 @@ trait HandlesButtonActions
         $client->update(['lang' => $code]);
         app()->setLocale($code);
         Telegraph::chat($this->chat->chat_id)->deleteMessage($this->messageId)->send();
-        Telegraph::chat($this->chat->chat_id)->message('✅')->replyKeyboard($this->getDefaultKeyboard())->send();
+        
+        // If this is initial language selection, move to phone number
+        if ($client->state === ConversationStates::waiting_lang) {
+            $this->setState($client, ConversationStates::waiting_phone);
+            Telegraph::chat($this->chat->chat_id)
+                ->message(__('telegram.welcome_message'))
+                ->send();
+            $this->askForPhoneNumber();
+        } else {
+            Telegraph::chat($this->chat->chat_id)->message('✅')->replyKeyboard($this->getDefaultKeyboard())->send();
+        }
     }
     public function showMyCardsAction(): void
     {

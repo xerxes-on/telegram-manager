@@ -30,10 +30,10 @@ class ClientFactory extends Factory
             'last_name' => fake()->lastName(),
             'telegram_id' => fake()->unique()->numerify('##########'),
             'phone_number' => fake()->phoneNumber(),
-            'state' => ConversationStates::IDLE,
+            'state' => ConversationStates::chat,
             'username' => fake()->userName(),
             'chat_id' => fake()->unique()->numerify('##########'),
-            'lang' => fake()->randomElement(['uz', 'ru', 'en']),
+            'lang' => fake()->randomElement(['uz', 'ru', 'oz']),
         ];
     }
 
