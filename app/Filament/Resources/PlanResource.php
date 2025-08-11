@@ -22,12 +22,20 @@ class PlanResource extends Resource
         return $form
             ->schema([
                 Forms\Components\TextInput::make('name')
+                    ->label(__('filament.fields.name'))
                     ->required()
                     ->maxLength(255),
                 Forms\Components\TextInput::make('price')
+                    ->label(__('filament.fields.price'))
                     ->required()
                     ->numeric()
-                    ->suffix('Uzs'),
+                    ->suffix('UZS'),
+                Forms\Components\TextInput::make('days')
+                    ->label(__('filament.fields.days'))
+                    ->required()
+                    ->numeric()
+                    ->minValue(1)
+                    ->maxValue(365),
             ]);
     }
 
@@ -36,16 +44,24 @@ class PlanResource extends Resource
         return $table
             ->columns([
                 Tables\Columns\TextColumn::make('name')
+                    ->label(__('filament.fields.name'))
                     ->searchable(),
                 Tables\Columns\TextColumn::make('price')
-                    ->money('uzs')
+                    ->label(__('filament.fields.price'))
+                    ->money('UZS')
                     ->formatStateUsing(fn ($state) => $state / 100)
                     ->sortable(),
+                Tables\Columns\TextColumn::make('days')
+                    ->label(__('filament.fields.days'))
+                    ->numeric()
+                    ->sortable(),
                 Tables\Columns\TextColumn::make('created_at')
+                    ->label(__('filament.fields.created_at'))
                     ->dateTime()
                     ->sortable()
                     ->toggleable(isToggledHiddenByDefault: true),
                 Tables\Columns\TextColumn::make('updated_at')
+                    ->label(__('filament.fields.updated_at'))
                     ->dateTime()
                     ->sortable()
                     ->toggleable(isToggledHiddenByDefault: true),
