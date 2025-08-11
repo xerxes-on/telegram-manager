@@ -33,7 +33,7 @@ class SendSubscriptionRemindersJob implements ShouldQueue
      */
     private function sendFirstReminder(): void
     {
-        $subscriptions = Subscription::query()
+        Subscription::query()
             ->where('status', true)
             ->whereBetween('expires_at', [
                 now()->addDays(3)->startOfDay(),
@@ -44,11 +44,11 @@ class SendSubscriptionRemindersJob implements ShouldQueue
                     ->orWhere('reminder_count', 0);
             })
             ->with(['client', 'plan'])
-            ->get();
-
-        foreach ($subscriptions as $subscription) {
-            $this->sendReminder($subscription, 1, 3);
-        }
+            ->chunk(100, function ($subscriptions) {
+                foreach ($subscriptions as $subscription) {
+                    $this->sendReminder($subscription, 1, 3);
+                }
+            });
     }
 
     /**
@@ -56,7 +56,7 @@ class SendSubscriptionRemindersJob implements ShouldQueue
      */
     private function sendSecondReminder(): void
     {
-        $subscriptions = Subscription::query()
+        Subscription::query()
             ->where('status', true)
             ->whereBetween('expires_at', [
                 now()->addDays(2)->startOfDay(),
@@ -64,11 +64,11 @@ class SendSubscriptionRemindersJob implements ShouldQueue
             ])
             ->where('reminder_count', 1)
             ->with(['client', 'plan'])
-            ->get();
-
-        foreach ($subscriptions as $subscription) {
-            $this->sendReminder($subscription, 2, 2);
-        }
+            ->chunk(100, function ($subscriptions) {
+                foreach ($subscriptions as $subscription) {
+                    $this->sendReminder($subscription, 2, 2);
+                }
+            });
     }
 
     /**
@@ -76,7 +76,7 @@ class SendSubscriptionRemindersJob implements ShouldQueue
      */
     private function sendFinalReminder(): void
     {
-        $subscriptions = Subscription::query()
+        Subscription::query()
             ->where('status', true)
             ->whereBetween('expires_at', [
                 now()->addDays(1)->startOfDay(),
@@ -84,11 +84,11 @@ class SendSubscriptionRemindersJob implements ShouldQueue
             ])
             ->where('reminder_count', 2)
             ->with(['client', 'plan'])
-            ->get();
-
-        foreach ($subscriptions as $subscription) {
-            $this->sendReminder($subscription, 3, 1);
-        }
+            ->chunk(100, function ($subscriptions) {
+                foreach ($subscriptions as $subscription) {
+                    $this->sendReminder($subscription, 3, 1);
+                }
+            });
     }
 
     /**

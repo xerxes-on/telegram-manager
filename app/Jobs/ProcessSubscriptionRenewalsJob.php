@@ -31,7 +31,7 @@ class ProcessSubscriptionRenewalsJob implements ShouldQueue
      */
     private function processExpiringSubscriptions(): void
     {
-        $subscriptions = Subscription::query()
+        Subscription::query()
             ->where('status', true)
             ->whereBetween('expires_at', [
                 now()->startOfDay(),
@@ -41,18 +41,18 @@ class ProcessSubscriptionRenewalsJob implements ShouldQueue
                 $query->where('verified', true)->where('is_main', true);
             })
             ->with(['client', 'plan'])
-            ->get();
-
-        foreach ($subscriptions as $subscription) {
-            try {
-                $this->attemptRenewal($subscription);
-            } catch (Exception $e) {
-                Log::error('Subscription renewal failed', [
-                    'subscription_id' => $subscription->id,
-                    'error' => $e->getMessage()
-                ]);
-            }
-        }
+            ->chunk(100, function ($subscriptions) {
+                foreach ($subscriptions as $subscription) {
+                    try {
+                        $this->attemptRenewal($subscription);
+                    } catch (Exception $e) {
+                        Log::error('Subscription renewal failed', [
+                            'subscription_id' => $subscription->id,
+                            'error' => $e->getMessage()
+                        ]);
+                    }
+                }
+            });
     }
 
     /**
@@ -60,15 +60,15 @@ class ProcessSubscriptionRenewalsJob implements ShouldQueue
      */
     private function processExpiredSubscriptions(): void
     {
-        $subscriptions = Subscription::query()
+        Subscription::query()
             ->where('status', true)
             ->where('expires_at', '<', now())
             ->with(['client'])
-            ->get();
-
-        foreach ($subscriptions as $subscription) {
-            $this->handleExpiredSubscription($subscription);
-        }
+            ->chunk(100, function ($subscriptions) {
+                foreach ($subscriptions as $subscription) {
+                    $this->handleExpiredSubscription($subscription);
+                }
+            });
     }
 
     /**
@@ -78,15 +78,15 @@ class ProcessSubscriptionRenewalsJob implements ShouldQueue
     {
         $client = $subscription->client;
         $plan = $subscription->plan;
-        
+
         // Set locale
         app()->setLocale($client->lang ?? 'uz');
 
-        // Skip if already attempted today
-        if ($subscription->last_payment_attempt && 
-            $subscription->last_payment_attempt->isToday()) {
-            return;
-        }
+//        // Skip if already attempted today
+//        if ($subscription->last_payment_attempt &&
+//            $subscription->last_payment_attempt->isToday()) {
+//            return;
+//        }
 
         // Get all verified cards
         $cards = $client->cards()
@@ -102,7 +102,7 @@ class ProcessSubscriptionRenewalsJob implements ShouldQueue
                 // Attempt payment with this card
                 $service = app(SubscriptionService::class);
                 $newSubscription = $service->renewSubscription($subscription, $card);
-                
+
                 if ($newSubscription) {
                     $renewed = true;
                     $this->notifySuccessfulRenewal($client, $newSubscription);
@@ -142,7 +142,7 @@ class ProcessSubscriptionRenewalsJob implements ShouldQueue
             // Remove from channel
             $client = $subscription->client;
             app()->setLocale($client->lang ?? 'uz');
-            
+
             try {
                 $handleChannel = new HandleChannel($client);
                 if ($handleChannel->getChannelUser() !== 'unknown') {
@@ -179,7 +179,7 @@ class ProcessSubscriptionRenewalsJob implements ShouldQueue
     private function notifyFailedRenewal($client, $subscription): void
     {
         $daysLeft = max(0, $subscription->expires_at->diffInDays(now()));
-        
+
         Telegraph::chat($client->chat_id)
             ->message(__('telegram.subscription_renewal_failed', [
                 'days_left' => $daysLeft
