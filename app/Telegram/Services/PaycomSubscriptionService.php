@@ -165,7 +165,7 @@ class PaycomSubscriptionService extends WebhookHandler
     public function receiptsCreate(Plan $plan, Client $client, Order $order): void
     {
         $params = [
-            'amount' => $plan->price,
+            'amount' => intval($plan->price),
             'account' => [
                 'order_id' => $order->id,
             ],
