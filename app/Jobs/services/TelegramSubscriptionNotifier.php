@@ -5,6 +5,8 @@ namespace App\Jobs\services;
 use App\Jobs\Interfaces\SubscriptionNotifier;
 use App\Models\Client;
 use DefStudio\Telegraph\Facades\Telegraph;
+use DefStudio\Telegraph\Keyboard\Button;
+use DefStudio\Telegraph\Keyboard\Keyboard;
 
 class TelegramSubscriptionNotifier implements SubscriptionNotifier
 {
@@ -16,6 +18,7 @@ class TelegramSubscriptionNotifier implements SubscriptionNotifier
 
         Telegraph::chat($client->chat_id)
             ->html($message)
+            ->keyboard(  Keyboard::make()->buttons([Button::make(__('telegram.pay_now_button'))->action('pay_now')]))
             ->send();
     }
 }

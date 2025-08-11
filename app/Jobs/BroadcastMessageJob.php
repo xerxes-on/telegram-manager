@@ -40,7 +40,7 @@ class BroadcastMessageJob implements ShouldQueue
                     foreach ($clients as $client) {
                         try {
                             Telegraph::chat($client->chat_id)
-                                ->html($this->announcement->body)
+                                ->markdown($this->announcement->body)
                                 ->photo(url('storage/' . $this->announcement->file_path), __("filament.announcement.messages.attachment"))
                                 ->send();
                         } catch (Exception $e) {

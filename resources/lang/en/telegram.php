@@ -100,4 +100,7 @@ return [
     'free_plan_card_explanation' => "For free plan you will not be charged, card adding is for clarifying you are a legit customer not an ai or a bot 😇",
     'subscription_renewal_max_retries_reached' => "Dear :name, we tried to renew your subscription :retry_count times but were unsuccessful. Your subscription has been cancelled. Please resubscribe.",
     'plan_not_found' => "Subscription plan not found. Please select again.",
+    'no_card_for_payment' => 'No card found for payment. Please add a card first.',
+    'subscription_renewal_confirmation' => "Renew subscription: :plan_name\nPrice: :plan_price UZS\nCard: :card_number",
+    'free_plan_upgrade_prompt' => 'Your current subscription is free. Please choose a paid plan to continue.',
 ]; 

@@ -26,7 +26,7 @@ class Handler extends WebhookHandler
     use CanAlterUsers, HasPlans, HandlesButtonActions, CanUsePayme, CanHandleCards, TracksMessages;
 
     public Client $client;
-    
+
     /**
      * Handle callback queries (inline keyboard button presses)
      */
@@ -36,7 +36,7 @@ class Handler extends WebhookHandler
         if ($this->callbackQuery && $this->callbackQuery->message()) {
             MessageTracker::trackMessage($this->chat->chat_id, $this->callbackQuery->message()->id());
         }
-        
+
         parent::handleCallbackQuery();
     }
 
@@ -47,7 +47,7 @@ class Handler extends WebhookHandler
         if ($this->message && $this->message->id()) {
             MessageTracker::onUserMessage($this->chat->chat_id, $this->message->id());
         }
-        
+
         if ($this->message) {
             Telegraph::chat($this->chat->chat_id)
                 ->reactWithEmoji($this->message->id(), '😇')
@@ -55,7 +55,7 @@ class Handler extends WebhookHandler
         }
 
         $client = $this->getCreateClient();
-        
+
         // If client just created, they will be asked for language
         // Otherwise show welcome and plans
         if ($client->state !== ConversationStates::waiting_lang) {
@@ -83,7 +83,7 @@ class Handler extends WebhookHandler
         if ($this->message && $this->message->id()) {
             MessageTracker::onUserMessage($this->chat->chat_id, $this->message->id());
         }
-        
+
         $client = $this->getCreateClient();
 
         switch ($text->value()) {
@@ -131,7 +131,7 @@ class Handler extends WebhookHandler
             __('telegram.uz') => 'uz',
             __('telegram.oz') => 'oz',
         ];
-        
+
         $selectedLang = null;
         foreach ($langMap as $label => $code) {
             if ($text === $label || strpos($text, $code) !== false) {
@@ -139,16 +139,16 @@ class Handler extends WebhookHandler
                 break;
             }
         }
-        
+
         if ($selectedLang) {
             $client->update(['lang' => $selectedLang]);
             $this->setState($client, ConversationStates::waiting_phone);
             app()->setLocale($selectedLang);
-            
+
             Telegraph::chat($this->chat->chat_id)
                 ->message(__('telegram.welcome_message'))
                 ->send();
-            
+
             $this->askForPhoneNumber();
         } else {
             $this->sendLangs();
@@ -202,7 +202,7 @@ class Handler extends WebhookHandler
 
         // Check if user has a verified main card
         $card = $client->cards()->where(['verified' => true, 'is_main' => true])->first();
-        
+
         if (!$card) {
             if ($planModel->price == 0) {
                 Telegraph::chat($this->chat->chat_id)
@@ -246,6 +246,62 @@ class Handler extends WebhookHandler
         } else {
             $this->callRecurrentPay($client, $plan);
         }
+    }
+
+    public function pay_now(): void
+    {
+        Telegraph::chat($this->chat->chat_id)->deleteMessage($this->messageId)->send();
+
+        $client = $this->getCreateClient();
+
+        // Check if client has an active subscription to renew
+        $subscription = $client->subscriptions()->where('status', true)->latest()->first();
+
+        if (!$subscription) {
+            Telegraph::chat($this->chat->chat_id)
+                ->message(__('telegram.no_active_subscription'))
+                ->send();
+            $this->sendPlans();
+            return;
+        }
+
+        // Get the plan from the subscription
+        $plan = $subscription->plan;
+
+        // Check if the current plan is a free plan
+        if ($plan->price === 0) {
+            Telegraph::chat($this->chat->chat_id)
+                ->message(__('telegram.free_plan_upgrade_prompt'))
+                ->send();
+            $this->sendPlans();
+            return;
+        }
+
+        // Check if user has a verified main card
+        $card = $client->cards()->where(['verified' => true, 'is_main' => true])->first();
+
+        if (!$card) {
+            Telegraph::chat($this->chat->chat_id)
+                ->message(__('telegram.no_card_for_payment'))
+                ->send();
+            $this->askForCardDetails($client);
+        }
+
+        // Show confirmation
+        Telegraph::chat($this->chat->chat_id)
+            ->html(__('telegram.subscription_renewal_confirmation', [
+                'plan_name' => $plan->name,
+                'plan_price' => $plan->price / 100,
+                'card_number' => $card->masked_number,
+            ]))
+            ->keyboard(
+                Keyboard::make()
+                    ->buttons([
+                        Button::make(__('telegram.confirm_button'))->action('payPayme')->param('plan_id', $plan->id)->width(1),
+                        Button::make(__('telegram.change_card_button'))->action('showMyCardsAction')->width(0.8),
+                        Button::make(__('telegram.back_button'))->action('goHomeAction')->width(0.2),
+                    ]))
+            ->send();
     }
 
 

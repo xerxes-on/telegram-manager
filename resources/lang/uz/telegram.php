@@ -123,4 +123,7 @@ return [
     'view_plans_button' => '📱 Tariflarni ko\'rish',
     'add_new_card_button' => '💳 Yangi karta qo\'shish',
     'retry_button' => '🔄 Qayta urinish',
+    'no_card_for_payment' => 'To\'lov uchun karta topilmadi. Iltimos, avval karta qo\'shing.',
+    'subscription_renewal_confirmation' => "Obunani yangilash: :plan_name\nNarxi: :plan_price UZS\nKarta: :card_number",
+    'free_plan_upgrade_prompt' => 'Sizning joriy obunangiz bepul. Iltimos, davom etish uchun pullik rejani tanlang.',
 ]; 
