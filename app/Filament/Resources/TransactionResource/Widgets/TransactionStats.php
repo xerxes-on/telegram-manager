@@ -27,15 +27,15 @@ class TransactionStats extends BaseWidget
             ->sum('amount');
 
         return [
-            Stat::make('Today\'s Revenue', Number::currency($todayTransactions / 100, 'UZS'))
+            Stat::make('Today\'s Revenue', number_format($todayTransactions / 100, 0, '.', ' ') . ' UZS')
                 ->description('Completed transactions today')
                 ->descriptionIcon('heroicon-m-arrow-trending-up')
                 ->color('success'),
-            Stat::make('This Month', Number::currency($monthTransactions / 100, 'UZS'))
+            Stat::make('This Month', number_format($monthTransactions / 100, 0, '.', ' ') . ' UZS')
                 ->description('Total for ' . now()->format('F'))
                 ->descriptionIcon('heroicon-m-calendar')
                 ->color('primary'),
-            Stat::make('All Time', Number::currency($totalTransactions / 100, 'UZS'))
+            Stat::make('All Time', number_format($totalTransactions / 100, 0, '.', ' ') . ' UZS')
                 ->description('Total revenue')
                 ->descriptionIcon('heroicon-m-banknotes')
                 ->color('warning'),

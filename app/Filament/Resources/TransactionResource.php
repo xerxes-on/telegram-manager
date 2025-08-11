@@ -29,6 +29,8 @@ class TransactionResource extends Resource
                     ->disabled(),
                 Forms\Components\TextInput::make('amount')
                     ->numeric()
+                    ->formatStateUsing(fn ($state) => $state / 100)
+                    ->suffix('UZS')
                     ->disabled(),
                 Forms\Components\Select::make('state')
                     ->options([
@@ -64,7 +66,7 @@ class TransactionResource extends Resource
                 Tables\Columns\TextColumn::make('order.plan.name')
                     ->label('Plan'),
                 Tables\Columns\TextColumn::make('amount')
-                    ->money('UZS', divideBy: 1)
+                    ->money('UZS', divideBy: 100)
                     ->sortable(),
                 Tables\Columns\BadgeColumn::make('state')
                     ->colors([

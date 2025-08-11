@@ -126,4 +126,5 @@ return [
     'no_card_for_payment' => 'Тўлов учун карта топилмади. Илтимос, аввал карта қўшинг.',
     'subscription_renewal_confirmation' => "Обунани янгилаш: :plan_name\nНархи: :plan_price UZS\nКарта: :card_number",
     'free_plan_upgrade_prompt' => 'Сизнинг жорий обунангиз бепул. Илтимос, давом этиш учун пуллик режани танланг.',
+    'free_plan_auto_renewed' => 'Сизнинг бепул синов муддатингиз тугади. Биз сизнинг обунангизни автоматик равишда :plan режага :price UZS га янгиладик. Обунангиз :expires_at гача амал қилади.',
 ];

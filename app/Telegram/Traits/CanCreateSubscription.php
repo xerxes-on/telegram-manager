@@ -21,13 +21,26 @@ trait CanCreateSubscription
             str_contains($planTitle, 'one-year') => Carbon::now()->addYear(),
             default => Carbon::now()->addWeek()
         };
-        $client->subscriptions()->where('status', true)->latest()?->first()?->deactivate();
+        // Get previous subscription if exists
+        $previousSubscription = $client->subscriptions()->where('status', true)->latest()->first();
+        if ($previousSubscription) {
+            $previousSubscription->deactivate();
+        }
+        
+        // Create subscription with all fields
         Subscription::query()->create([
             'client_id' => $client->id,
             'receipt_id' => $receiptId,
             'expires_at' => $expires,
             'status' => 1,
-            'plan_id' => $plan->id
+            'plan_id' => $plan->id,
+            'previous_subscription_id' => $previousSubscription?->id,
+            'is_renewal' => $previousSubscription !== null,
+            'payment_retry_count' => 0,
+            'last_payment_attempt' => null,
+            'last_payment_error' => null,
+            'reminder_sent_at' => null,
+            'reminder_count' => 0,
         ]);
 
         Telegraph::chat($client->chat_id)

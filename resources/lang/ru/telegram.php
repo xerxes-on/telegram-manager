@@ -121,4 +121,5 @@ return [
     'no_card_for_payment' => 'Карта для оплаты не найдена. Пожалуйста, сначала добавьте карту.',
     'subscription_renewal_confirmation' => "Продление подписки: :plan_name\nЦена: :plan_price UZS\nКарта: :card_number",
     'free_plan_upgrade_prompt' => 'Ваша текущая подписка бесплатная. Пожалуйста, выберите платный план для продолжения.',
+    'free_plan_auto_renewed' => 'Ваш бесплатный период закончился. Мы автоматически продлили вашу подписку на :plan за :price UZS. Ваша подписка действительна до :expires_at.',
 ]; 

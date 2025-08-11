@@ -103,4 +103,5 @@ return [
     'no_card_for_payment' => 'No card found for payment. Please add a card first.',
     'subscription_renewal_confirmation' => "Renew subscription: :plan_name\nPrice: :plan_price UZS\nCard: :card_number",
     'free_plan_upgrade_prompt' => 'Your current subscription is free. Please choose a paid plan to continue.',
+    'free_plan_auto_renewed' => 'Your free trial has ended. We have automatically renewed your subscription to :plan for :price UZS. Your subscription is valid until :expires_at.',
 ]; 

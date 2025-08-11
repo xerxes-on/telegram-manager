@@ -126,4 +126,5 @@ return [
     'no_card_for_payment' => 'To\'lov uchun karta topilmadi. Iltimos, avval karta qo\'shing.',
     'subscription_renewal_confirmation' => "Obunani yangilash: :plan_name\nNarxi: :plan_price UZS\nKarta: :card_number",
     'free_plan_upgrade_prompt' => 'Sizning joriy obunangiz bepul. Iltimos, davom etish uchun pullik rejani tanlang.',
+    'free_plan_auto_renewed' => 'Sizning bepul sinov muddatingiz tugadi. Biz sizning obunangizni avtomatik ravishda :plan rejaga :price UZS ga yangiladik. Obunangiz :expires_at gacha amal qiladi.',
 ]; 

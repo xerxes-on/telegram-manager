@@ -26,13 +26,26 @@ class SubscriptionService
             // Calculate expiration date based on plan
             $expiresAt = $this->calculateExpirationDate($plan);
             
-            // Create subscription
+            // Get previous subscription if exists
+            $previousSubscription = $client->subscriptions()->where('status', true)->latest()->first();
+            if ($previousSubscription) {
+                $previousSubscription->deactivate();
+            }
+            
+            // Create subscription with all fields
             $subscription = Subscription::create([
                 'client_id' => $client->id,
                 'plan_id' => $plan->id,
                 'receipt_id' => $receiptId,
                 'expires_at' => $expiresAt,
                 'status' => true,
+                'previous_subscription_id' => $previousSubscription?->id,
+                'is_renewal' => $previousSubscription !== null,
+                'payment_retry_count' => 0,
+                'last_payment_attempt' => null,
+                'last_payment_error' => null,
+                'reminder_sent_at' => null,
+                'reminder_count' => 0,
             ]);
             
             // Add user to channel

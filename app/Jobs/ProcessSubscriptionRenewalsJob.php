@@ -63,12 +63,94 @@ class ProcessSubscriptionRenewalsJob implements ShouldQueue
         Subscription::query()
             ->where('status', true)
             ->where('expires_at', '<', now())
-            ->with(['client'])
+            ->with(['client', 'plan'])
             ->chunk(100, function ($subscriptions) {
                 foreach ($subscriptions as $subscription) {
-                    $this->handleExpiredSubscription($subscription);
+                    // Check if it's an expired free plan that expires today
+                    if ($subscription->plan->price === 0 && 
+                        $subscription->expires_at->isToday() &&
+                        $subscription->client->cards()->where('verified', true)->exists()) {
+                        $this->attemptFreeToOneMonthRenewal($subscription);
+                    } else {
+                        $this->handleExpiredSubscription($subscription);
+                    }
                 }
             });
+    }
+
+    /**
+     * Attempt to renew expired free plan to one-month paid plan
+     */
+    private function attemptFreeToOneMonthRenewal(Subscription $subscription): void
+    {
+        $client = $subscription->client;
+        
+        // Set locale
+        app()->setLocale($client->lang ?? 'uz');
+        
+        // Get one-month plan
+        $oneMonthPlan = \App\Models\Plan::where('name', 'one-month')->first();
+        if (!$oneMonthPlan) {
+            Log::error('One-month plan not found for free plan renewal');
+            return;
+        }
+        
+        // Get verified cards
+        $cards = $client->cards()
+            ->where('verified', true)
+            ->orderBy('is_main', 'desc')
+            ->get();
+            
+        $renewed = false;
+        $lastError = null;
+        
+        foreach ($cards as $card) {
+            try {
+                // Create a temporary subscription with one-month plan for renewal
+                $tempSubscription = new Subscription();
+                $tempSubscription->client_id = $client->id;
+                $tempSubscription->plan_id = $oneMonthPlan->id;
+                $tempSubscription->expires_at = $subscription->expires_at;
+                
+                // Attempt payment with this card
+                $service = app(SubscriptionService::class);
+                $newSubscription = $service->renewSubscription($tempSubscription, $card);
+                
+                if ($newSubscription) {
+                    $renewed = true;
+                    // Mark the new subscription as a renewal from free plan
+                    $newSubscription->update([
+                        'previous_subscription_id' => $subscription->id,
+                        'is_renewal' => true,
+                    ]);
+                    
+                    // Deactivate old free subscription
+                    $subscription->update(['status' => false]);
+                    
+                    // Notify user about automatic upgrade
+                    Telegraph::chat($client->chat_id)
+                        ->message(__('telegram.free_plan_auto_renewed', [
+                            'plan' => $oneMonthPlan->name,
+                            'price' => $oneMonthPlan->price / 100,
+                            'expires_at' => $newSubscription->expires_at->format('d.m.Y')
+                        ]))
+                        ->send();
+                    break;
+                }
+            } catch (Exception $e) {
+                $lastError = $e->getMessage();
+                Log::warning('Free plan renewal payment failed', [
+                    'card_id' => $card->id,
+                    'subscription_id' => $subscription->id,
+                    'error' => $e->getMessage()
+                ]);
+            }
+        }
+        
+        if (!$renewed) {
+            // If renewal failed, handle as expired subscription
+            $this->handleExpiredSubscription($subscription);
+        }
     }
 
     /**
