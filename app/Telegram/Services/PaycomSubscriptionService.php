@@ -55,30 +55,30 @@ class PaycomSubscriptionService extends WebhookHandler
             $cardDetails = $response['card'];
             $card = $this->createCardRecord($client, $cardDetails);
             $success = $this->cardsSendVerifyCode($client, $cardDetails['token']);
-            
+
             // If failed to send verification code, delete the card
             if (!$success && $card) {
                 $card->delete();
             }
-            
+
             return $success;
         } else {
             Cache::forget($this->chat_id . "card");
             // Set state back to waiting for card so user can try again
             $this->setState($client, ConversationStates::waiting_card);
-            
+
             // Send error message and ask for card again
             if (isset($response['error'])) {
                 $this->notify(__('telegram.card_error_try_again'));
             } else {
                 $this->notify(__('telegram.card_add_failed'));
             }
-            
+
             // Ask for card details again
             Telegraph::chat($this->chat_id)
                 ->message(__('telegram.ask_for_card_number'))
                 ->send();
-            
+
             return false;
         }
     }
@@ -133,7 +133,7 @@ class PaycomSubscriptionService extends WebhookHandler
             $card->delete();
             return false;
         }
-        
+
         // Only update if verification is successful
         $card->update([
             'verified' => true,
@@ -169,6 +169,7 @@ class PaycomSubscriptionService extends WebhookHandler
             'account' => [
                 'order_id' => $order->id,
             ],
+            'description' =>  __('telegram.telegram_channel_subscription') . "-" . $plan->name,
             'detail' => [
                 'receipt_type' => 0,
                 'items' => [
