@@ -65,7 +65,7 @@ class PaymeService
         }
 
         // 4. Check existing transaction for the same order and same Paycom ID/time
-        $existing = \App\Models\Payment\Transaction::where('order_id', $orderId)
+        $existing = Transaction::where('order_id', $orderId)
             ->where('state', 1)
             ->get();
 
