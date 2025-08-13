@@ -3,11 +3,8 @@
 namespace App\Telegram\Services;
 
 use App\Models\Order;
-use App\Models\Subscription;
 use App\Models\Transaction;
-use App\Models\User;
 use Carbon\Carbon;
-use Illuminate\Support\Facades\DB;
 
 class PaymeService
 {
@@ -113,6 +110,7 @@ class PaymeService
             'en' => 'Order payment is currently being processed'
         ]);
     }
+
     /**
      * Check transaction status.
      */
@@ -127,7 +125,7 @@ class PaymeService
         // Format response based on transaction state
         return [
             'result' => [
-                'create_time' => (string) $transaction->paycom_time,
+                'create_time' => (int) $transaction->paycom_time,
                 'perform_time' => (int) $transaction->perform_time_unix,
                 'cancel_time' => (int) $transaction->cancel_time,
                 'transaction' => (string) $transaction->id,
@@ -142,72 +140,47 @@ class PaymeService
      */
     public function performTransaction(array $params): array
     {
-        return DB::transaction(function () use ($params) {
-            // Lock the transaction row to avoid double-perform
-            $transaction = Transaction::where('paycom_transaction_id', $params['id'])
-                ->lockForUpdate()
-                ->first();
+        $transaction = Transaction::where('paycom_transaction_id', $params['id'])->first();
 
-            if (!$transaction) {
-                return $this->error(-31003, 'Транзакция не найдена');
-            }
+        if (!$transaction) {
+            return $this->error(-31003, 'Транзакция не найдена');
+        }
 
-            // If transaction is in "created" state => move it to "performed"
-            if ($transaction->state == 1) {
-                $currentMillis = (int) (microtime(true) * 1000);
-                $transaction->state = 2;
-                $transaction->perform_time = Carbon::now();
-                $transaction->perform_time_unix = $currentMillis;
-                $transaction->update();
+        // If transaction is in "created" state => move it to "performed"
+        if ($transaction->state == 1) {
+            $currentMillis = (int) (microtime(true) * 1000);
+            $transaction->state = 2;
+            $transaction->perform_time = Carbon::now();  // or date('Y-m-d H:i:s')
+            $transaction->perform_time_unix = $currentMillis;
+            $transaction->update();
 
-                // Mark order as completed
-                $order = Order::find($transaction->order_id);
-                $order->status = 'charged';
-                $order->update();
+            // Mark order as completed
+            $order = Order::find($transaction->order_id);
+            $order->status = 'charged';
+            $order->update();
 
-                $user = User::where('phone_number', $order->client->phone_number)->first();
-                if (!empty($user)) {
-                    $productTitle = $order->product->title;
-                    if (preg_match('/(\d+)-week/', $productTitle, $matches)) {
-                        $weeks = (int) $matches[1];
-                        $expires = Carbon::now()->addWeeks($weeks);
-                    } else {
-                        $expires = Carbon::now()->addWeeks();
-                    }
-                    Subscription::create([
-                        'user_id' => $user->id,
-                        'transaction_id' => $order->id,
-                        'amount' => $order->price,
-                        'expires_at' => $expires,
-                        'status' => 'active',
-                        'payment_method' => 'payme',
-                        'metadata' => json_encode($transaction),
-                        'product_id' => $order->product->id
-                    ]);
-                }
-                return [
-                    'result' => [
-                        'transaction' => (string) $transaction->id,
-                        'perform_time' => (int) $transaction->perform_time_unix,
-                        'state' => (int) $transaction->state,
-                    ],
-                ];
-            }
+            return [
+                'result' => [
+                    'transaction' => (string) $transaction->id,
+                    'perform_time' => (int) $transaction->perform_time_unix,
+                    'state' => (int) $transaction->state,
+                ],
+            ];
+        }
 
-            // If transaction already performed => return the same info
-            if ($transaction->state == 2) {
-                return [
-                    'result' => [
-                        'transaction' => (string) $transaction->id,
-                        'perform_time' => (int) $transaction->perform_time_unix,
-                        'state' => (int) $transaction->state,
-                    ],
-                ];
-            }
+        // If transaction already performed => return the same info
+        if ($transaction->state == 2) {
+            return [
+                'result' => [
+                    'transaction' => (string) $transaction->id,
+                    'perform_time' => (int) $transaction->perform_time_unix,
+                    'state' => (int) $transaction->state,
+                ],
+            ];
+        }
 
-            // If some other states, you can handle accordingly
-            return $this->checkTransaction($params);
-        }, 3);
+        // If some other states, you can handle accordingly
+        return $this->checkTransaction($params);
     }
 
     /**
