@@ -8,6 +8,19 @@ use Carbon\Carbon;
 
 class PaymeService
 {
+    // PayMe transaction states
+    public const STATE_CREATED = 1;
+    public const STATE_COMPLETED = 2;
+    public const STATE_CANCELLED_BEFORE_PERFORM = -1;
+    public const STATE_CANCELLED_AFTER_PERFORM = -2;
+
+    // PayMe error codes
+    public const ERROR_INVALID_AMOUNT = -31001;
+    public const ERROR_TRANSACTION_NOT_FOUND = -31003;
+    public const ERROR_ORDER_NOT_FOUND = -31050;
+    public const ERROR_ORDER_UNAVAILABLE = -31051;
+    public const ERROR_TRANSACTION_IN_PROGRESS = -31099;
+    public const ERROR_INSUFFICIENT_PRIVILEGE = -32504;
 
     public function checkPerformTransaction(array $params): array
     {
@@ -15,16 +28,16 @@ class PaymeService
         $order = Order::find($orderId);
 
         if (!$order) {
-            return $this->error(-31050, [
+            return $this->error(self::ERROR_ORDER_NOT_FOUND, [
                 'uz' => 'Buyurtma topilmadi',
                 'ru' => 'Заказ не найден',
                 'en' => 'Order not found'
             ]);
         }
 
-        // 3. Check the amount
-        if ($order->price != $params['amount']) {
-            return $this->error(-31001, [
+        // 3. Check the amount (PayMe sends amount in cents)
+        if (($order->price * 100) != $params['amount']) {
+            return $this->error(self::ERROR_INVALID_AMOUNT, [
                 'uz' => 'Notogri summa',
                 'ru' => 'Неверная сумма',
                 'en' => 'Incorrect amount'
@@ -46,16 +59,16 @@ class PaymeService
 
         // 2. Validate order
         if (!$order) {
-            return $this->error(-31050, [
+            return $this->error(self::ERROR_ORDER_NOT_FOUND, [
                 'uz' => 'Buyurtma topilmadi',
                 'ru' => 'Заказ не найден',
                 'en' => 'Order not found'
             ]);
         }
 
-        // 3. Validate amount
-        if ($order->price != $params['amount']) {
-            return $this->error(-31001, [
+        // 3. Validate amount (PayMe sends amount in cents)
+        if (($order->price * 100) != $params['amount']) {
+            return $this->error(self::ERROR_INVALID_AMOUNT, [
                 'uz' => 'Notogri summa',
                 'ru' => 'Неверная сумма',
                 'en' => 'Incorrect amount'
@@ -64,7 +77,7 @@ class PaymeService
 
         // 4. Check existing transaction for the same order and same Paycom ID/time
         $existing = Transaction::where('order_id', $orderId)
-            ->where('state', 1)
+            ->whereIn('state', [self::STATE_CREATED, self::STATE_COMPLETED])
             ->get();
 
         //   (a) If no transaction yet, create new
@@ -74,7 +87,7 @@ class PaymeService
             $transaction->paycom_time = $params['time'];
             $transaction->paycom_time_datetime = now();
             $transaction->amount = $params['amount'];
-            $transaction->state = 1;
+            $transaction->state = self::STATE_CREATED;
             $transaction->order_id = $orderId;
             $transaction->save();
 
@@ -104,7 +117,7 @@ class PaymeService
         }
 
         //   (c) Otherwise, transaction for this order is being processed
-        return $this->error(-31099, [
+        return $this->error(self::ERROR_TRANSACTION_IN_PROGRESS, [
             'uz' => 'Buyurtma tolovi hozirda amalga oshrilmoqda',
             'ru' => 'Оплата заказа в данный момент обрабатывается',
             'en' => 'Order payment is currently being processed'
@@ -119,15 +132,15 @@ class PaymeService
         $transaction = Transaction::where('paycom_transaction_id', $params['id'])->first();
 
         if (!$transaction) {
-            return $this->error(-31003, 'Transaction not found.');
+            return $this->error(self::ERROR_TRANSACTION_NOT_FOUND, 'Transaction not found.');
         }
 
         // Format response based on transaction state
         return [
             'result' => [
                 'create_time' => (int) $transaction->paycom_time,
-                'perform_time' => (int) $transaction->perform_time_unix,
-                'cancel_time' => (int) $transaction->cancel_time,
+                'perform_time' => (int) ($transaction->perform_time_unix ?? 0),
+                'cancel_time' => (int) ($transaction->cancel_time ?? 0),
                 'transaction' => (string) $transaction->id,
                 'state' => (int) $transaction->state,
                 'reason' => $transaction->reason,
@@ -143,13 +156,13 @@ class PaymeService
         $transaction = Transaction::where('paycom_transaction_id', $params['id'])->first();
 
         if (!$transaction) {
-            return $this->error(-31003, 'Транзакция не найдена');
+            return $this->error(self::ERROR_TRANSACTION_NOT_FOUND, 'Транзакция не найдена');
         }
 
         // If transaction is in "created" state => move it to "performed"
-        if ($transaction->state == 1) {
+        if ($transaction->state == self::STATE_CREATED) {
             $currentMillis = (int) (microtime(true) * 1000);
-            $transaction->state = 2;
+            $transaction->state = self::STATE_COMPLETED;
             $transaction->perform_time = Carbon::now();  // or date('Y-m-d H:i:s')
             $transaction->perform_time_unix = $currentMillis;
             $transaction->update();
@@ -169,7 +182,7 @@ class PaymeService
         }
 
         // If transaction already performed => return the same info
-        if ($transaction->state == 2) {
+        if ($transaction->state == self::STATE_COMPLETED) {
             return [
                 'result' => [
                     'transaction' => (string) $transaction->id,
@@ -191,16 +204,16 @@ class PaymeService
         $transaction = Transaction::where('paycom_transaction_id', $params['id'])->first();
 
         if (!$transaction) {
-            return $this->error(-31003, 'Transaction not found');
+            return $this->error(self::ERROR_TRANSACTION_NOT_FOUND, 'Transaction not found');
         }
 
         $currentMillis = (int) (microtime(true) * 1000);
 
         // If state == 1 => Cancel and set state = -1
-        if ($transaction->state == 1) {
+        if ($transaction->state == self::STATE_CREATED) {
             $transaction->reason = $params['reason'] ?? null;
             $transaction->cancel_time = $currentMillis;
-            $transaction->state = -1;
+            $transaction->state = self::STATE_CANCELLED_BEFORE_PERFORM;
             $transaction->update();
 
             $order = Order::find($transaction->order_id);
@@ -216,10 +229,10 @@ class PaymeService
         }
 
         // If state == 2 => Cancel and set state = -2
-        if ($transaction->state == 2) {
+        if ($transaction->state == self::STATE_COMPLETED) {
             $transaction->reason = $params['reason'] ?? null;
             $transaction->cancel_time = $currentMillis;
-            $transaction->state = -2;
+            $transaction->state = self::STATE_CANCELLED_AFTER_PERFORM;
             $transaction->update();
 
             $order = Order::find($transaction->order_id);
@@ -235,7 +248,7 @@ class PaymeService
         }
 
         // If already canceled => just return state
-        if ($transaction->state == -1 || $transaction->state == -2) {
+        if ($transaction->state == self::STATE_CANCELLED_BEFORE_PERFORM || $transaction->state == self::STATE_CANCELLED_AFTER_PERFORM) {
             return [
                 'result' => [
                     'state' => (int) $transaction->state,
@@ -254,14 +267,35 @@ class PaymeService
      */
     public function getStatement(array $params): array
     {
-        // Assuming you have a scope or function for time range filtering
         $from = $params['from'] ?? null;
         $to = $params['to'] ?? null;
+        
+        if (!$from || !$to) {
+            return $this->error(self::ERROR_INVALID_AMOUNT, 'Invalid time range parameters');
+        }
+        
         $transactions = Transaction::getTransactionsByTimeRange($from, $to);
+        
+        $formattedTransactions = $transactions->map(function ($transaction) {
+            return [
+                'id' => (string) $transaction->id,
+                'time' => (int) $transaction->paycom_time,
+                'amount' => (int) $transaction->amount,
+                'account' => [
+                    'order_id' => (string) $transaction->order_id
+                ],
+                'create_time' => (int) $transaction->paycom_time,
+                'perform_time' => (int) ($transaction->perform_time_unix ?? 0),
+                'cancel_time' => (int) ($transaction->cancel_time ?? 0),
+                'transaction' => (string) $transaction->paycom_transaction_id,
+                'state' => (int) $transaction->state,
+                'reason' => $transaction->reason,
+            ];
+        });
 
         return [
             'result' => [
-                'transactions' => \App\Http\Resources\TransactionResource::collection($transactions),
+                'transactions' => $formattedTransactions->toArray(),
             ],
         ];
     }
@@ -271,7 +305,7 @@ class PaymeService
      */
     public function changePassword(): array
     {
-        return $this->error(-32504, 'Недостаточно привилегий для выполнения метода');
+        return $this->error(self::ERROR_INSUFFICIENT_PRIVILEGE, 'Недостаточно привилегий для выполнения метода');
     }
 
     /**

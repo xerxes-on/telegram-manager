@@ -38,6 +38,15 @@ return [
         'url' => env('PAYME_API_URL'),
         'id' => env('PAYME_API_ID'),
         'key' => env('PAYME_API_KEY'),
+        'verify_transactions' => env('PAYME_VERIFY_TRANSACTIONS', false),
+        'cabinet' => [
+            'login' => env('PAYME_CABINET_LOGIN'),
+            'password' => env('PAYME_CABINET_PASSWORD'),
+            'device_id' => env('PAYME_DEVICE_ID'),
+            'device_key' => env('PAYME_DEVICE_KEY'),
+            'business_id' => env('PAYME_BUSINESS_ID'),
+            'merchant_id' => env('PAYME_MERCHANT_ID'),
+        ],
     ],
     'telegram' => [
         'admin_chat_id' => env('ADMIN_CHAT_ID'),
