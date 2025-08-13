@@ -22,6 +22,19 @@ class Transaction extends Model
         'perform_time_unix',
     ];
 
+    protected $casts = [
+        'paycom_time' => 'integer',
+        'perform_time_unix' => 'integer',
+        'cancel_time' => 'integer',
+        'amount' => 'integer',
+        'state' => 'integer',
+        'reason' => 'integer',
+        'order_id' => 'integer',
+        'create_time' => 'datetime',
+        'perform_time' => 'datetime',
+        'paycom_time_datetime' => 'datetime',
+    ];
+
     public static function getTransactionsByTimeRange($from, $to)
     {
         return self::whereBetween('paycom_time', [$from, $to])
