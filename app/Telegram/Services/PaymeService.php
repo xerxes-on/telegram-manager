@@ -51,7 +51,8 @@ class PaymeService
         if ($existingByPaymeId) {
             return [
                 'result' => [
-                    'create_time' => $existingByPaymeId->paycom_time,
+                    // Return exactly the original millisecond timestamp without casting to avoid 32-bit overflow
+                    'create_time' => (string) $existingByPaymeId->paycom_time,
                     'transaction' => (string) $existingByPaymeId->id,
                     'state' => (int) $existingByPaymeId->state,
                 ],
@@ -90,7 +91,7 @@ class PaymeService
                 && $pending->paycom_transaction_id == $params['id']) {
                 return [
                     'result' => [
-                        'create_time' => $pending->paycom_time,
+                        'create_time' => (string) $pending->paycom_time,
                         'transaction' => (string) $pending->id,
                         'state' => (int) $pending->state,
                     ],
@@ -118,7 +119,7 @@ class PaymeService
 
             return [
                 'result' => [
-                    'create_time' => (int) $params['time'],
+                    'create_time' => (string) $transaction->paycom_time,
                     'transaction' => (string) $transaction->id,
                     'state' => (int) $transaction->state,
                 ],
@@ -140,7 +141,7 @@ class PaymeService
         // Format response based on transaction state
         return [
             'result' => [
-                'create_time' => (int) $transaction->paycom_time,
+                'create_time' => (string) $transaction->paycom_time,
                 'perform_time' => (int) $transaction->perform_time_unix,
                 'cancel_time' => (int) $transaction->cancel_time,
                 'transaction' => (string) $transaction->id,
