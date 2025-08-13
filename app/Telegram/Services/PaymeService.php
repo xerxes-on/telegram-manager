@@ -45,69 +45,33 @@ class PaymeService
     public function createTransaction(array $params): array
     {
         $orderId = $params['account']['order_id'] ?? null;
+        $order = Order::find($orderId);
 
-        // Idempotency by Payme transaction id: if we already saw this id, return it
-        $existingByPaymeId = Transaction::where('paycom_transaction_id', $params['id'])->first();
-        if ($existingByPaymeId) {
-            return [
-                'result' => [
-                    // Return exactly the original millisecond timestamp without casting to avoid 32-bit overflow
-                    'create_time' => (string) $existingByPaymeId->paycom_time,
-                    'transaction' => (string) $existingByPaymeId->id,
-                    'state' => (int) $existingByPaymeId->state,
-                ],
-            ];
+        // 2. Validate order
+        if (!$order) {
+            return $this->error(-31050, [
+                'uz' => 'Buyurtma topilmadi',
+                'ru' => 'Заказ не найден',
+                'en' => 'Order not found'
+            ]);
         }
 
-        return DB::transaction(function () use ($orderId, $params) {
-            // Lock the order row to serialize concurrent creates for the same order
-            $order = Order::whereKey($orderId)->lockForUpdate()->first();
+        // 3. Validate amount
+        if ($order->price != $params['amount']) {
+            return $this->error(-31001, [
+                'uz' => 'Notogri summa',
+                'ru' => 'Неверная сумма',
+                'en' => 'Incorrect amount'
+            ]);
+        }
 
-            // Validate order
-            if (!$order) {
-                return $this->error(-31050, [
-                    'uz' => 'Buyurtma topilmadi',
-                    'ru' => 'Заказ не найден',
-                    'en' => 'Order not found'
-                ]);
-            }
+        // 4. Check existing transaction for the same order and same Paycom ID/time
+        $existing = Transaction::where('order_id', $orderId)
+            ->where('state', 1)
+            ->get();
 
-            // Validate amount
-            if ($order->price != $params['amount']) {
-                return $this->error(-31001, [
-                    'uz' => 'Notogri summa',
-                    'ru' => 'Неверная сумма',
-                    'en' => 'Incorrect amount'
-                ]);
-            }
-
-            // Check if there is already a pending transaction for this order
-            $pending = Transaction::where('order_id', $orderId)
-                ->where('state', 1)
-                ->first();
-
-            // If the same payme id/time was already saved for this order, return it
-            if ($pending
-                && $pending->paycom_transaction_id == $params['id']) {
-                return [
-                    'result' => [
-                        'create_time' => (string) $pending->paycom_time,
-                        'transaction' => (string) $pending->id,
-                        'state' => (int) $pending->state,
-                    ],
-                ];
-            }
-
-            // If some OTHER pending transaction exists for this order, tell Payme it's processing
-            if ($pending) {
-                return $this->error(-31099, [
-                    'uz' => 'Buyurtma tolovi hozirda amalga oshrilmoqda',
-                    'ru' => 'Оплата заказа в данный момент обрабатывается',
-                    'en' => 'Order payment is currently being processed'
-                ]);
-            }
-
-            // Otherwise, create a new pending transaction
+        //   (a) If no transaction yet, create new
+        if ($existing->count() === 0) {
             $transaction = new Transaction();
             $transaction->paycom_transaction_id = $params['id'];
             $transaction->paycom_time = $params['time'];
@@ -119,14 +83,36 @@ class PaymeService
 
             return [
                 'result' => [
-                    'create_time' => (string) $transaction->paycom_time,
+                    'create_time' => $params['time'],
                     'transaction' => (string) $transaction->id,
-                    'state' => (int) $transaction->state,
+                    'state' => $transaction->state,
                 ],
             ];
-        }, 3);
-    }
+        }
 
+        //   (b) If transaction with the same time & paycom_transaction_id exists
+        $first = $existing->first();
+        if (
+            $existing->count() === 1
+            && $first->paycom_time == $params['time']
+            && $first->paycom_transaction_id == $params['id']
+        ) {
+            return [
+                'result' => [
+                    'create_time' => $params['time'],
+                    'transaction' => (string) $first->id,
+                    'state' => (int) $first->state,
+                ],
+            ];
+        }
+
+        //   (c) Otherwise, transaction for this order is being processed
+        return $this->error(-31099, [
+            'uz' => 'Buyurtma tolovi hozirda amalga oshrilmoqda',
+            'ru' => 'Оплата заказа в данный момент обрабатывается',
+            'en' => 'Order payment is currently being processed'
+        ]);
+    }
     /**
      * Check transaction status.
      */
