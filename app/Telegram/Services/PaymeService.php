@@ -51,7 +51,7 @@ class PaymeService
         if ($existingByPaymeId) {
             return [
                 'result' => [
-                    'create_time' => (int) $existingByPaymeId->paycom_time ?: (int) $params['time'],
+                    'create_time' => $existingByPaymeId->paycom_time,
                     'transaction' => (string) $existingByPaymeId->id,
                     'state' => (int) $existingByPaymeId->state,
                 ],
@@ -87,11 +87,10 @@ class PaymeService
 
             // If the same payme id/time was already saved for this order, return it
             if ($pending
-                && $pending->paycom_transaction_id == $params['id']
-                && $pending->paycom_time == $params['time']) {
+                && $pending->paycom_transaction_id == $params['id']) {
                 return [
                     'result' => [
-                        'create_time' => (int) $pending->paycom_time,
+                        'create_time' => $pending->paycom_time,
                         'transaction' => (string) $pending->id,
                         'state' => (int) $pending->state,
                     ],
@@ -119,7 +118,7 @@ class PaymeService
 
             return [
                 'result' => [
-                    'create_time' => (int) $transaction->paycom_time,
+                    'create_time' => (int) $params['time'],
                     'transaction' => (string) $transaction->id,
                     'state' => (int) $transaction->state,
                 ],
