@@ -164,7 +164,7 @@ class PaymeService
             $currentMillis = (int) (microtime(true) * 1000);
             $transaction->state = self::STATE_COMPLETED;
             $transaction->perform_time = Carbon::now();  // or date('Y-m-d H:i:s')
-            $transaction->perform_time_unix = $currentMillis;
+            $transaction->perform_time_unix = (string) $currentMillis;
             $transaction->update();
 
             // Mark order as completed
@@ -212,7 +212,7 @@ class PaymeService
         // If state == 1 => Cancel and set state = -1
         if ($transaction->state == self::STATE_CREATED) {
             $transaction->reason = $params['reason'] ?? null;
-            $transaction->cancel_time = $currentMillis;
+            $transaction->cancel_time = (string) $currentMillis;
             $transaction->state = self::STATE_CANCELLED_BEFORE_PERFORM;
             $transaction->update();
 
@@ -231,7 +231,7 @@ class PaymeService
         // If state == 2 => Cancel and set state = -2
         if ($transaction->state == self::STATE_COMPLETED) {
             $transaction->reason = $params['reason'] ?? null;
-            $transaction->cancel_time = $currentMillis;
+            $transaction->cancel_time = (string) $currentMillis;
             $transaction->state = self::STATE_CANCELLED_AFTER_PERFORM;
             $transaction->update();
 
