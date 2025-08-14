@@ -36,7 +36,7 @@ class PaymeService
         }
 
         // 3. Check the amount (PayMe sends amount in cents)
-        if (($order->price * 100) != $params['amount']) {
+        if (($order->price) != $params['amount']) {
             return $this->error(self::ERROR_INVALID_AMOUNT, [
                 'uz' => 'Notogri summa',
                 'ru' => 'Неверная сумма',
@@ -67,7 +67,7 @@ class PaymeService
         }
 
         // 3. Validate amount (PayMe sends amount in cents)
-        if (($order->price * 100) != $params['amount']) {
+        if (($order->price) != $params['amount']) {
             return $this->error(self::ERROR_INVALID_AMOUNT, [
                 'uz' => 'Notogri summa',
                 'ru' => 'Неверная сумма',
@@ -217,7 +217,7 @@ class PaymeService
             $transaction->update();
 
             $order = Order::find($transaction->order_id);
-            $order->update(['status' => 'canceled']);
+            $order->update(['status' => 'cancelled']);
 
             return [
                 'result' => [
@@ -236,7 +236,7 @@ class PaymeService
             $transaction->update();
 
             $order = Order::find($transaction->order_id);
-            $order->update(['status' => 'bekor qilindi']);
+            $order->update(['status' => 'cancelled']);
 
             return [
                 'result' => [

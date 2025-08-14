@@ -27,6 +27,12 @@ class Order extends Model
     use HasFactory;
     protected $guarded = [];
 
+    protected $casts = [
+        'price' => 'integer',
+        'plan_id' => 'integer',
+        'client_id' => 'integer',
+    ];
+
     public function client(): BelongsTo
     {
         return $this->belongsTo(Client::class);
