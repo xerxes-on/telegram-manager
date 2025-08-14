@@ -84,7 +84,7 @@ class PaymeService
         if ($existing->count() === 0) {
             $transaction = Transaction::create([
                 "paycom_transaction_id" => $params['id'],
-                "paycom_time" => $params['time'],
+                "paycom_time" => (string) $params['time'],
                 "paycom_time_datetime" => now(),
                 "amount" => $params['amount'],
                 "state" => self::STATE_CREATED,
@@ -93,7 +93,7 @@ class PaymeService
 
             return [
                 'result' => [
-                    'create_time' => $transaction->paycom_time,
+                    'create_time' => (int) $transaction->paycom_time,
                     'transaction' => (string) $transaction->id,
                     'state' => $transaction->state,
                 ],
