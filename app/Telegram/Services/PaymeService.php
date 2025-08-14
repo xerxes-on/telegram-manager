@@ -138,9 +138,9 @@ class PaymeService
         // Format response based on transaction state
         return [
             'result' => [
-                'create_time' => (int) $transaction->paycom_time,
-                'perform_time' => (int) ($transaction->perform_time_unix ?? 0),
-                'cancel_time' => (int) ($transaction->cancel_time ?? 0),
+                'create_time' => $this->safeIntCast($transaction->paycom_time),
+                'perform_time' => $this->safeIntCast($transaction->perform_time_unix ?? 0),
+                'cancel_time' => $this->safeIntCast($transaction->cancel_time ?? 0),
                 'transaction' => (string) $transaction->id,
                 'state' => (int) $transaction->state,
                 'reason' => $transaction->reason,
@@ -279,14 +279,14 @@ class PaymeService
         $formattedTransactions = $transactions->map(function ($transaction) {
             return [
                 'id' => (string) $transaction->id,
-                'time' => (int) $transaction->paycom_time,
+                'time' => $this->safeIntCast($transaction->paycom_time),
                 'amount' => (int) $transaction->amount,
                 'account' => [
                     'order_id' => (string) $transaction->order_id
                 ],
-                'create_time' => (int) $transaction->paycom_time,
-                'perform_time' => (int) ($transaction->perform_time_unix ?? 0),
-                'cancel_time' => (int) ($transaction->cancel_time ?? 0),
+                'create_time' => $this->safeIntCast($transaction->paycom_time),
+                'perform_time' => $this->safeIntCast($transaction->perform_time_unix ?? 0),
+                'cancel_time' => $this->safeIntCast($transaction->cancel_time ?? 0),
                 'transaction' => (string) $transaction->paycom_transaction_id,
                 'state' => (int) $transaction->state,
                 'reason' => $transaction->reason,
@@ -306,6 +306,52 @@ class PaymeService
     public function changePassword(): array
     {
         return $this->error(self::ERROR_INSUFFICIENT_PRIVILEGE, 'Недостаточно привилегий для выполнения метода');
+    }
+
+    /**
+     * Safely cast a value to integer, handling large numbers correctly.
+     * This prevents 32-bit integer overflow issues with PayMe timestamps.
+     */
+    private function safeIntCast($value): int
+    {
+        if ($value === null || $value === '') {
+            return 0;
+        }
+        
+        // Handle string values that might represent large integers
+        $stringValue = trim((string) $value);
+        
+        if (!is_numeric($stringValue)) {
+            return 0;
+        }
+        
+        // If the value looks like it was corrupted by 32-bit overflow, try to detect and fix
+        $numValue = floatval($stringValue);
+        
+        // If we have a negative number that could be an overflow, check if it makes sense
+        if ($numValue < 0 && $numValue > -2147483648) {
+            // This might be a 32-bit overflow - try to recover the original value
+            $recovered = $numValue + 4294967296; // Add 2^32
+            
+            // Check if the recovered value makes sense as a PayMe timestamp (should be around current time in ms)
+            $currentTimeMs = time() * 1000;
+            $oneYearInMs = 365 * 24 * 60 * 60 * 1000;
+            
+            if ($recovered > ($currentTimeMs - $oneYearInMs) && $recovered < ($currentTimeMs + $oneYearInMs)) {
+                return (int) $recovered;
+            }
+        }
+        
+        // For very large numbers, ensure they fit in 64-bit int
+        if ($numValue > PHP_INT_MAX) {
+            return PHP_INT_MAX;
+        }
+        
+        if ($numValue < PHP_INT_MIN) {
+            return PHP_INT_MIN;
+        }
+        
+        return (int) $numValue;
     }
 
     /**
