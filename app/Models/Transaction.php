@@ -23,9 +23,9 @@ class Transaction extends Model
     ];
 
     protected $casts = [
-        'paycom_time' => 'integer',
-        'perform_time_unix' => 'integer',
-        'cancel_time' => 'integer',
+        'paycom_time' => 'string',
+        'perform_time_unix' => 'string',
+        'cancel_time' => 'string',
         'amount' => 'integer',
         'state' => 'integer',
         'reason' => 'integer',
