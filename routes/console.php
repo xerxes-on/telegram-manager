@@ -19,5 +19,4 @@ Schedule::job(ProcessSubscriptionRenewalsJob::class)
 Schedule::job(CheckSubscriptionsJob::class)
     ->daily()->at('23:00');
 
-// Run queue worker in daemon mode managed by supervisor in production.
-// Remove queue:work from scheduler to avoid spawning workers repeatedly.
+Schedule::command('queue:work --stop-when-empty')->everyMinute()->withoutOverlapping();
