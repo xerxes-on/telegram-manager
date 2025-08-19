@@ -35,12 +35,6 @@ class Transaction extends Model
         'paycom_time_datetime' => 'datetime',
     ];
 
-    public static function getTransactionsByTimeRange($from, $to)
-    {
-        return self::whereBetween('paycom_time', [$from, $to])
-            ->get();
-    }
-
     public function order(): BelongsTo
     {
         return $this->belongsTo(Order::class);

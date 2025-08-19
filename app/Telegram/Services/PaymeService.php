@@ -274,7 +274,7 @@ class PaymeService
             return $this->error(self::ERROR_INVALID_AMOUNT, 'Invalid time range parameters');
         }
 
-        $transactions = Transaction::getTransactionsByTimeRange($from, $to);
+        $transactions = Transaction::whereBetween('paycom_time', [(int)$from, (int)$to])->get();
 
         $formattedTransactions = $transactions->map(function ($transaction) {
             return [
